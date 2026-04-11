@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PSI AutoOps Manager</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">PSI AutoOps Manager</p>
+        <h1>Workshop operations</h1>
+      </div>
+      <div class="api-control">
+        <label for="apiBase">API</label>
+        <input id="apiBase" value="http://localhost:8080" spellcheck="false">
+        <button id="saveApi" type="button">Save</button>
+      </div>
+    </header>
+
+    <main class="shell">
+      <nav class="tabs" aria-label="Use cases">
+        <button class="tab is-active" data-tab="schedule">UC01 Schedule</button>
+        <button class="tab" data-tab="inventory">UC02 Inventory</button>
+        <button class="tab" data-tab="operations">UC03 Prices</button>
+        <button class="tab" data-tab="completion">UC04 Completion</button>
+      </nav>
+
+      <section id="status" class="status" role="status"></section>
+
+      <section id="schedule" class="view is-active">
+        <div class="split">
+          <form id="scheduleForm" class="panel">
+            <h2>Repair booking</h2>
+            <div class="grid two">
+              <label>Customer name<input name="customerName" value="Peter Novak" required></label>
+              <label>Email<input name="customerEmail" value="peter.novak@example.com" type="email" required></label>
+              <label>Phone<input name="customerPhone" value="+421900111222"></label>
+              <label>VIN<input name="vin" value="WVWZZZ1KZ6W000001" required></label>
+              <label>License plate<input name="licensePlate" value="BA-123AB" required></label>
+              <label>Vehicle<input name="vehicleName" value="Volkswagen Golf"></label>
+              <label>Year<input name="year" value="2018" type="number"></label>
+              <label>Mileage<input name="mileage" value="162000" type="number"></label>
+              <label>Max price<input name="maxPrice" value="400.00" type="number" min="0" step="0.01"></label>
+              <label>Mechanic<select name="mechanicId" id="mechanicSelect"></select></label>
+              <label>Start<input name="plannedStart" id="plannedStart" type="datetime-local" required></label>
+              <label>Finish<input name="plannedCompletionDate" id="plannedEnd" type="datetime-local" required></label>
+            </div>
+            <label>Problem<textarea name="problemDescription" rows="3">Brake noise and dashboard warning light</textarea></label>
+            <label>Tasks<textarea name="taskNames" rows="3">Diagnose warning light
+Inspect brake system
+Road test</textarea></label>
+            <button type="submit">Create repair order</button>
+          </form>
+          <section class="panel">
+            <div class="section-head">
+              <h2>Repair orders</h2>
+              <button id="refreshOrders" type="button">Refresh</button>
+            </div>
+            <div id="ordersList" class="list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="inventory" class="view">
+        <div class="split">
+          <form id="inventoryForm" class="panel">
+            <h2>Use or reserve part</h2>
+            <label>Repair order<select name="repairJobId" id="inventoryOrderSelect"></select></label>
+            <label>Inventory item<select name="itemId" id="inventorySelect"></select></label>
+            <label>Amount<input name="amount" value="1" type="number" min="1"></label>
+            <div class="actions">
+              <button name="action" value="use" type="submit">Use item</button>
+              <button name="action" value="reserve" type="submit">Reserve item</button>
+            </div>
+          </form>
+          <section class="panel">
+            <div class="section-head">
+              <h2>Stock</h2>
+              <input id="inventorySearch" placeholder="Search code or name">
+            </div>
+            <div id="inventoryList" class="list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="operations" class="view">
+        <div class="split">
+          <form id="operationForm" class="panel">
+            <h2>Change service price</h2>
+            <label>Operation<select name="operationId" id="operationSelect"></select></label>
+            <label>New price<input name="newPrice" value="59.00" type="number" min="0" step="0.01"></label>
+            <label>Description<input name="description" value="Diagnostics with detailed report"></label>
+            <label>Reason<textarea name="reason" rows="3">Supplier and labor price update</textarea></label>
+            <button type="submit">Update price</button>
+          </form>
+          <section class="panel">
+            <h2>Operations</h2>
+            <div id="operationList" class="list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="completion" class="view">
+        <div class="split">
+          <form id="completionForm" class="panel">
+            <h2>Complete repair</h2>
+            <label>Repair order<select name="repairOrderId" id="completionOrderSelect"></select></label>
+            <label>Work hours<input name="actualWorkHours" value="3.5" type="number" min="0" step="0.25"></label>
+            <label class="check"><input name="markAllTasksDone" type="checkbox" checked> Mark all tasks done</label>
+            <label>Service note<textarea name="note" rows="4">Repair completed, vehicle road tested.</textarea></label>
+            <button type="submit">Create invoice</button>
+          </form>
+          <section class="panel">
+            <h2>Invoice</h2>
+            <pre id="invoiceOutput" class="output"></pre>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
