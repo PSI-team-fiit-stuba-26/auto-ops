@@ -44,6 +44,7 @@ public class InventoryService {
         item.count -= amount;
         reservationRepository.findOpenReservation(repairJobId, itemId).ifPresent(reservation -> {
             reservation.consumed = true;
+            item.reservedCount = Math.max(0, item.reservedCount - reservation.amount);
             reservationRepository.save(reservation);
         });
         refreshStatus(item);
