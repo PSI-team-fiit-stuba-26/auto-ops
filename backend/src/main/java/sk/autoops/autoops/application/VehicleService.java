@@ -48,4 +48,24 @@ public class VehicleService {
     public List<Vehicle> findAll() {
         return vehicleRepository.findAll();
     }
+
+    public List<Vehicle> findByCustomerId(UUID customerId) {
+        return vehicleRepository.findByCustomerId(customerId);
+    }
+
+    public Vehicle updateVehicleFields(UUID id, String licensePlate, String brand, String model, Integer year, Integer mileage) {
+        Vehicle vehicle = findVehicle(id);
+        if (licensePlate != null && !licensePlate.isBlank()) vehicle.licensePlate = licensePlate;
+        if (brand != null && !brand.isBlank()) vehicle.brand = brand;
+        if (model != null && !model.isBlank()) vehicle.model = model;
+        if (year != null && year > 0) vehicle.year = year;
+        if (mileage != null && mileage >= 0) vehicle.mileage = mileage;
+        return vehicleRepository.save(vehicle);
+    }
+
+    public void deleteVehicle(UUID id) {
+        if (!vehicleRepository.delete(id)) {
+            throw new IllegalArgumentException("Vehicle not found");
+        }
+    }
 }

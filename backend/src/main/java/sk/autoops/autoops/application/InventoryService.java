@@ -9,6 +9,7 @@ import sk.autoops.autoops.infrastructure.InventoryItemRepository;
 import sk.autoops.autoops.infrastructure.ReservationRepository;
 import sk.autoops.autoops.infrastructure.UsageRepository;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -80,6 +81,28 @@ public class InventoryService {
 
     public UsageReservationRecord addReservationRecord(UUID repairJobId, UUID itemId, int amount) {
         return usageRepository.save(new UsageReservationRecord(null, repairJobId, itemId, amount, "RESERVE", LocalDateTime.now()));
+    }
+
+    public InventoryItem createItem(String code, String name, int count, String location, BigDecimal price) {
+        InventoryItem item = new InventoryItem(null, code, name, count, location == null ? "" : location, price);
+        refreshStatus(item);
+        return inventoryItemRepository.save(item);
+    }
+
+    public InventoryItem updateItem(UUID itemId, String name, Integer count, String location, BigDecimal price) {
+        InventoryItem item = findById(itemId);
+        if (name != null && !name.isBlank()) item.name = name;
+        if (count != null && count >= 0) item.count = count;
+        if (location != null) item.location = location;
+        if (price != null) item.price = price;
+        refreshStatus(item);
+        return inventoryItemRepository.save(item);
+    }
+
+    public void deleteItem(UUID itemId) {
+        if (!inventoryItemRepository.delete(itemId)) {
+            throw new IllegalArgumentException("Inventory item not found");
+        }
     }
 
     private void refreshStatus(InventoryItem item) {
