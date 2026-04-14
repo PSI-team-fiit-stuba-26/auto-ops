@@ -262,6 +262,35 @@
       </div>
     </div>
 
+    <!-- COMPLETE REPAIR MODAL -->
+    <div id="completeOverlay" class="modal-overlay hidden">
+      <div class="modal" id="completeModal">
+        <div class="modal-head">
+          <h2 class="modal-title">Complete Repair &amp; Issue Invoice</h2>
+          <button class="modal-close" id="completeClose">✕</button>
+        </div>
+        <div class="modal-body">
+          <form id="completeRepairForm" class="form-grid">
+            <input type="hidden" name="repairOrderId">
+            <label class="full">Work Hours
+              <input name="actualWorkHours" value="1.0" type="number" min="0" step="0.25">
+            </label>
+            <label class="full">Service Note
+              <textarea name="note" rows="3">Repair completed, vehicle road tested.</textarea>
+            </label>
+            <label class="full check-label">
+              <input name="markAllTasksDone" type="checkbox" checked>
+              Mark all tasks as done
+            </label>
+            <div class="form-actions">
+              <button type="submit" class="btn-primary">Create Invoice</button>
+            </div>
+          </form>
+          <pre id="invoiceResult" class="invoice-output hidden"></pre>
+        </div>
+      </div>
+    </div>
+
     <script src="./app.js"></script>
   </body>
 </html>

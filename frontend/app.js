@@ -121,6 +121,9 @@ function applyRoleUI() {
   hideIf(".nav-item[data-section='inventory']", isClient);
   hideIf(".nav-item[data-section='services']", isClient);
   hideIf(".section-toolbar", isClient); // Clients usually can't create things here
+  hideIf(".action-delete", isClient || isMechanic);
+  hideIf(".action-complete", isClient);
+  hideIf(".action-pay", isMechanic);
 }
 
 // ── Load all data ──────────────────────────────────────────────────────────
@@ -186,11 +189,11 @@ document.querySelectorAll(".nav-item").forEach((btn) => {
 });
 
 // ── API base save ──────────────────────────────────────────────────────────
-$("#saveApi").addEventListener("click", () => {
-  state.apiBase = $("#apiBase").value.replace(/\/$/, "");
-  localStorage.setItem("autoopsApiBase", state.apiBase);
-  loadAll();
-});
+// $("#saveApi").addEventListener("click", () => {
+//   state.apiBase = $("#apiBase").value.replace(/\/$/, "");
+//   localStorage.setItem("autoopsApiBase", state.apiBase);
+//   loadAll();
+// });
 
 // ── MODAL ─────────────────────────────────────────────────────────────────
 function openModal(title, html, onSubmit) {
@@ -273,8 +276,9 @@ function renderOrders() {
       <td>${o.tasks.filter((t) => t.status === "DONE").length}/${o.tasks.length}</td>
       <td>
         <div class="table-actions">
-          ${o.status !== "READY_FOR_PAYMENT" && o.status !== "COMPLETED" ? `<button class="btn-sm btn-primary" onclick="openCompleteModal('${o.id}')">Complete</button>` : ""}
-          <button class="btn-sm btn-danger" onclick="deleteOrder('${o.id}')">Delete</button>
+          ${o.status !== "READY_FOR_PAYMENT" && o.status !== "COMPLETED" ? `<button class="btn-sm btn-primary action-complete" onclick="openCompleteModal('${o.id}')">Complete</button>` : ""}
+          ${o.status === "READY_FOR_PAYMENT" ? `<button class="btn-sm btn-primary action-pay" onclick="payRepairOrder('${o.id}')">Pay</button>` : ""}
+          <button class="btn-sm btn-danger action-delete" onclick="deleteOrder('${o.id}')">Delete</button>
         </div>
       </td>
     </tr>
@@ -339,6 +343,19 @@ async function deleteOrder(id) {
   setStatus("Repair order deleted.", "ok");
 }
 window.deleteOrder = deleteOrder;
+
+async function payRepairOrder(id) {
+  if (!confirm("Mark this invoice as paid?")) return;
+  try {
+    await api(`/api/repairs/${id}/pay`, { method: "POST" });
+    state.orders = await api("/api/repair-orders");
+    renderOrders();
+    setStatus("Payment received. Repair order marked as completed.", "ok");
+  } catch (err) {
+    setStatus(err.message, "error");
+  }
+}
+window.payRepairOrder = payRepairOrder;
 
 // ── Complete repair modal ──────────────────────────────────────────────────
 function openCompleteModal(orderId) {

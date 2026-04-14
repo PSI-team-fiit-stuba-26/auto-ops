@@ -73,6 +73,8 @@ public class RepairCompletionService {
                 invoice.invoiceNumber(),
                 invoice.workAmount(),
                 invoice.partsAmount(),
+                invoice.subTotalAmount(),
+                invoice.vatAmount(),
                 invoice.totalAmount(),
                 paymentStatus
         );
@@ -119,9 +121,29 @@ public class RepairCompletionService {
         BigDecimal partsAmount = repairOrder.usedParts.stream()
                 .map(UsedPart::total)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalAmount = workAmount.add(partsAmount);
+        BigDecimal subTotalAmount = workAmount.add(partsAmount);
+        
+        // Calculate VAT (assuming 20%)
+        BigDecimal vatRate = new BigDecimal("0.20");
+        BigDecimal vatAmount = subTotalAmount.multiply(vatRate);
+        BigDecimal totalAmount = subTotalAmount.add(vatAmount);
+
         UUID invoiceId = UUID.randomUUID();
         String invoiceNumber = billingGateway.issueInvoiceNumber(repairOrder.id, totalAmount);
-        return new InvoiceSummary(invoiceId, invoiceNumber, workAmount, partsAmount, totalAmount, PaymentStatus.NOT_CREATED);
+        return new InvoiceSummary(invoiceId, invoiceNumber, workAmount, partsAmount, subTotalAmount, vatAmount, totalAmount, PaymentStatus.NOT_CREATED);
+    }
+
+    public RepairOrder payInvoice(UUID repairOrderId) {
+        RepairOrder repairOrder = repairOrderRepository.findById(repairOrderId)
+                .orElseThrow(() -> new IllegalArgumentException("Repair order not found"));
+        
+        if (repairOrder.status != RepairOrderStatus.READY_FOR_PAYMENT) {
+            throw new IllegalStateException("Repair order is not ready for payment");
+        }
+
+        // Simulate payment success and update accounting/status
+        repairOrder.status = RepairOrderStatus.COMPLETED;
+        repairOrderRepository.save(repairOrder);
+        return repairOrder;
     }
 }
