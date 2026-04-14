@@ -16,6 +16,7 @@
           <div>
             <div class="brand-name">AutoOps</div>
             <div class="brand-sub">Workshop Manager</div>
+            <div id="currentUserLabel" style="font-size:10px; color:#aaa; margin-top:2px;">Not logged in</div>
           </div>
         </div>
 
@@ -52,16 +53,13 @@
           <span class="nav-icon">🔔</span> Notifications
         </button>
 
-        <div class="sidebar-footer">
-          <label class="api-label">API Base</label>
-          <div class="api-row">
-            <input id="apiBase" value="http://localhost:8080" spellcheck="false">
-            <button id="saveApi" type="button" class="btn-icon">✓</button>
-          </div>
+        <div style="margin-top: 20px; padding: 0 16px;">
+          <button id="logoutBtn" class="btn-sm btn-secondary" style="width: 100%;">Logout</button>
         </div>
+
       </nav>
 
-      <!-- Main content -->
+      <!-- Main Content -->
       <div class="main-area">
         <header class="topbar">
           <div class="topbar-left">
@@ -225,46 +223,45 @@
       </div>
     </div>
 
-    <!-- MODAL OVERLAY -->
+    <!-- MODALS -->
     <div id="modalOverlay" class="modal-overlay hidden">
-      <div class="modal" id="modal">
+      <div class="modal">
         <div class="modal-head">
-          <h2 id="modalTitle">Form</h2>
+          <h2 class="modal-title" id="modalTitle">Modal</h2>
           <button class="modal-close" id="modalClose">✕</button>
         </div>
         <div class="modal-body" id="modalBody"></div>
       </div>
     </div>
 
-    <!-- COMPLETE REPAIR MODAL -->
-    <div id="completeOverlay" class="modal-overlay hidden">
-      <div class="modal" id="completeModal">
-        <div class="modal-head">
-          <h2>Complete Repair &amp; Issue Invoice</h2>
-          <button class="modal-close" id="completeClose">✕</button>
-        </div>
-        <div class="modal-body">
-          <form id="completeRepairForm" class="form-grid">
-            <input type="hidden" name="repairOrderId">
-            <label>Work Hours
-              <input name="actualWorkHours" value="3.5" type="number" min="0" step="0.25">
-            </label>
-            <label>Service Note
-              <textarea name="note" rows="3">Repair completed, vehicle road tested.</textarea>
-            </label>
-            <label class="check-label">
-              <input name="markAllTasksDone" type="checkbox" checked>
-              Mark all tasks as done
-            </label>
-            <div class="form-actions">
-              <button type="submit" class="btn-primary">Create Invoice</button>
-            </div>
-          </form>
-          <pre id="invoiceResult" class="invoice-output hidden"></pre>
+    <!-- FULL SCREEN LOGIN SCREEN -->
+    <div id="loginScreenContainer" class="login-screen hidden">
+      <div class="login-card">
+        <span class="brand-icon">🔧</span>
+        <h1>AutoOps Manager</h1>
+        <p>Sign in to access your workshop dashboard</p>
+
+        <div class="login-options">
+          <button class="btn-login-option" data-email="admin@autoops.local">
+            Administrator
+            <span>admin@autoops.local</span>
+          </button>
+          <button class="btn-login-option" data-email="advisor@autoops.local">
+            Service Advisor
+            <span>advisor@autoops.local</span>
+          </button>
+          <button class="btn-login-option" data-email="marek@autoops.local">
+            Mechanic
+            <span>marek@autoops.local</span>
+          </button>
+          <button class="btn-login-option" data-email="peter.novak@example.com">
+            Customer
+            <span>peter.novak@example.com</span>
+          </button>
         </div>
       </div>
     </div>
 
-    <script type="module" src="./app.js"></script>
+    <script src="./app.js"></script>
   </body>
 </html>
