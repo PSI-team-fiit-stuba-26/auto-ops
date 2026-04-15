@@ -27,7 +27,7 @@ public class UseReserveInventoryItemController {
 
     @PostMapping("/use")
     public InventoryActionResponse useInventoryItem(@Valid @RequestBody UseInventoryItemRequest request) {
-        UsageReservationRecord record = useReserveInventoryItemService.useInventoryItem(request.repairJobId(), request.itemId(), request.amount());
+        useReserveInventoryItemService.useInventoryItem(request);
         InventoryItem item = useReserveInventoryItemService.findInventoryItem(null).stream()
                 .filter(candidate -> candidate.id.equals(request.itemId()))
                 .findFirst()
