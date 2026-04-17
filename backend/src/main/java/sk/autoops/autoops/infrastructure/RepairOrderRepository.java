@@ -37,4 +37,20 @@ public class RepairOrderRepository {
                 .filter(order -> order.plannedStart.isBefore(end) && order.plannedCompletionDate.isAfter(start))
                 .toList();
     }
+
+    public List<RepairOrder> findByVehicleId(UUID vehicleId) {
+        return repairOrders.values().stream()
+                .filter(order -> vehicleId.equals(order.vehicleId))
+                .toList();
+    }
+
+    public List<RepairOrder> findByCustomerId(UUID customerId) {
+        return repairOrders.values().stream()
+                .filter(order -> customerId.equals(order.customerId))
+                .toList();
+    }
+
+    public boolean delete(UUID id) {
+        return repairOrders.remove(id) != null;
+    }
 }

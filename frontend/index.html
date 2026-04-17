@@ -3,122 +3,267 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PSI AutoOps Manager</title>
+    <title>AutoOps Manager</title>
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">PSI AutoOps Manager</p>
-        <h1>Workshop operations</h1>
-      </div>
-      <div class="api-control">
-        <label for="apiBase">API</label>
-        <input id="apiBase" value="http://localhost:8080" spellcheck="false">
-        <button id="saveApi" type="button">Save</button>
-      </div>
-    </header>
+    <div class="app-layout">
 
-    <main class="shell">
-      <nav class="tabs" aria-label="Use cases">
-        <button class="tab is-active" data-tab="schedule">UC01 Schedule</button>
-        <button class="tab" data-tab="inventory">UC02 Inventory</button>
-        <button class="tab" data-tab="operations">UC03 Prices</button>
-        <button class="tab" data-tab="completion">UC04 Completion</button>
+      <!-- Sidebar -->
+      <nav class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+          <span class="brand-icon">🔧</span>
+          <div>
+            <div class="brand-name">AutoOps</div>
+            <div class="brand-sub">Workshop Manager</div>
+          </div>
+        </div>
+
+        <div class="nav-section-label">Operations</div>
+        <button class="nav-item is-active" data-section="dashboard">
+          <span class="nav-icon">▦</span> Dashboard
+        </button>
+        <button class="nav-item" data-section="repair-orders">
+          <span class="nav-icon">🛠</span> Repair Orders
+        </button>
+
+        <div class="nav-section-label">Records</div>
+        <button class="nav-item" data-section="customers">
+          <span class="nav-icon">👤</span> Customers
+        </button>
+        <button class="nav-item" data-section="vehicles">
+          <span class="nav-icon">🚗</span> Vehicles
+        </button>
+        <button class="nav-item" data-section="mechanics">
+          <span class="nav-icon">👷</span> Mechanics
+        </button>
+
+        <div class="nav-section-label">Workshop</div>
+        <button class="nav-item" data-section="inventory">
+          <span class="nav-icon">📦</span> Inventory
+        </button>
+        <button class="nav-item" data-section="services">
+          <span class="nav-icon">💲</span> Services
+        </button>
+        <button class="nav-item" data-section="history">
+          <span class="nav-icon">📋</span> Service History
+        </button>
+        <button class="nav-item" data-section="notifications">
+          <span class="nav-icon">🔔</span> Notifications
+        </button>
+
+        <div class="sidebar-footer">
+          <label class="api-label">API Base</label>
+          <div class="api-row">
+            <input id="apiBase" value="http://localhost:8080" spellcheck="false">
+            <button id="saveApi" type="button" class="btn-icon">✓</button>
+          </div>
+        </div>
       </nav>
 
-      <section id="status" class="status" role="status"></section>
+      <!-- Main content -->
+      <div class="main-area">
+        <header class="topbar">
+          <div class="topbar-left">
+            <h1 id="pageTitle">Dashboard</h1>
+          </div>
+          <div id="globalStatus" class="global-status"></div>
+        </header>
 
-      <section id="schedule" class="view is-active">
-        <div class="split">
-          <form id="scheduleForm" class="panel">
-            <h2>Repair booking</h2>
-            <div class="grid two">
-              <label>Customer name<input name="customerName" value="Peter Novak" required></label>
-              <label>Email<input name="customerEmail" value="peter.novak@example.com" type="email" required></label>
-              <label>Phone<input name="customerPhone" value="+421900111222"></label>
-              <label>VIN<input name="vin" value="WVWZZZ1KZ6W000001" required></label>
-              <label>License plate<input name="licensePlate" value="BA-123AB" required></label>
-              <label>Vehicle<input name="vehicleName" value="Volkswagen Golf"></label>
-              <label>Year<input name="year" value="2018" type="number"></label>
-              <label>Mileage<input name="mileage" value="162000" type="number"></label>
-              <label>Max price<input name="maxPrice" value="400.00" type="number" min="0" step="0.01"></label>
-              <label>Mechanic<select name="mechanicId" id="mechanicSelect"></select></label>
-              <label>Start<input name="plannedStart" id="plannedStart" type="datetime-local" required></label>
-              <label>Finish<input name="plannedCompletionDate" id="plannedEnd" type="datetime-local" required></label>
-            </div>
-            <label>Problem<textarea name="problemDescription" rows="3">Brake noise and dashboard warning light</textarea></label>
-            <label>Tasks<textarea name="taskNames" rows="3">Diagnose warning light
-Inspect brake system
-Road test</textarea></label>
-            <button type="submit">Create repair order</button>
-          </form>
-          <section class="panel">
-            <div class="section-head">
-              <h2>Repair orders</h2>
-              <button id="refreshOrders" type="button">Refresh</button>
-            </div>
-            <div id="ordersList" class="list"></div>
-          </section>
-        </div>
-      </section>
+        <main class="content" id="mainContent">
 
-      <section id="inventory" class="view">
-        <div class="split">
-          <form id="inventoryForm" class="panel">
-            <h2>Use or reserve part</h2>
-            <label>Repair order<select name="repairJobId" id="inventoryOrderSelect"></select></label>
-            <label>Inventory item<select name="itemId" id="inventorySelect"></select></label>
-            <label>Amount<input name="amount" value="1" type="number" min="1"></label>
-            <div class="actions">
-              <button name="action" value="use" type="submit">Use item</button>
-              <button name="action" value="reserve" type="submit">Reserve item</button>
+          <!-- DASHBOARD -->
+          <section id="sec-dashboard" class="section is-active">
+            <div class="stats-grid" id="statsGrid">
+              <div class="stat-card"><div class="stat-val" id="stat-orders">—</div><div class="stat-lbl">Active Orders</div></div>
+              <div class="stat-card"><div class="stat-val" id="stat-customers">—</div><div class="stat-lbl">Customers</div></div>
+              <div class="stat-card"><div class="stat-val" id="stat-mechanics">—</div><div class="stat-lbl">Mechanics</div></div>
+              <div class="stat-card warn"><div class="stat-val" id="stat-lowstock">—</div><div class="stat-lbl">Low Stock Items</div></div>
+            </div>
+            <div class="dash-grid">
+              <div class="card">
+                <div class="card-head"><h2>Recent Repair Orders</h2></div>
+                <div id="dash-orders" class="item-list"></div>
+              </div>
+              <div class="card">
+                <div class="card-head"><h2>Notifications</h2></div>
+                <div id="dash-notifications" class="item-list"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- REPAIR ORDERS -->
+          <section id="sec-repair-orders" class="section">
+            <div class="section-toolbar">
+              <button class="btn-primary" id="newOrderBtn">+ New Repair Order</button>
+              <button class="btn-secondary" id="refreshOrdersBtn">Refresh</button>
+            </div>
+            <div id="orders-table-wrap" class="table-wrap">
+              <table class="data-table" id="ordersTable">
+                <thead><tr>
+                  <th>Problem</th><th>Status</th><th>Mechanic</th><th>Planned Start</th><th>Tasks</th><th>Actions</th>
+                </tr></thead>
+                <tbody id="ordersTbody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- CUSTOMERS -->
+          <section id="sec-customers" class="section">
+            <div class="section-toolbar">
+              <button class="btn-primary" id="newCustomerBtn">+ New Customer</button>
+              <input class="search-input" id="customerSearch" placeholder="Search customers…">
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Actions</th></tr></thead>
+                <tbody id="customersTbody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- VEHICLES -->
+          <section id="sec-vehicles" class="section">
+            <div class="section-toolbar">
+              <button class="btn-primary" id="newVehicleBtn">+ New Vehicle</button>
+              <input class="search-input" id="vehicleSearch" placeholder="Search vehicles…">
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>License Plate</th><th>Brand / Model</th><th>VIN</th><th>Year</th><th>Mileage</th><th>Actions</th></tr></thead>
+                <tbody id="vehiclesTbody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- MECHANICS -->
+          <section id="sec-mechanics" class="section">
+            <div class="section-toolbar">
+              <button class="btn-primary" id="newMechanicBtn">+ New Mechanic</button>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Name</th><th>Specialties</th><th>Wage / hr</th><th>Limitations</th><th>Actions</th></tr></thead>
+                <tbody id="mechanicsTbody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- INVENTORY -->
+          <section id="sec-inventory" class="section">
+            <div class="section-toolbar">
+              <button class="btn-primary" id="newItemBtn">+ Add Item</button>
+              <input class="search-input" id="inventorySearch2" placeholder="Search code or name…">
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Code</th><th>Name</th><th>Stock</th><th>Reserved</th><th>Location</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="inventoryTbody"></tbody>
+              </table>
+            </div>
+            <div class="card mt">
+              <div class="card-head"><h2>Use / Reserve Part</h2></div>
+              <form id="useReserveForm" class="form-grid">
+                <label>Repair Order
+                  <select name="repairJobId" id="useRepairSelect"></select>
+                </label>
+                <label>Inventory Item
+                  <select name="itemId" id="useItemSelect"></select>
+                </label>
+                <label>Amount
+                  <input name="amount" value="1" type="number" min="1">
+                </label>
+                <div class="form-actions">
+                  <button name="action" value="use" type="submit" class="btn-primary">Use Item</button>
+                  <button name="action" value="reserve" type="submit" class="btn-secondary">Reserve Item</button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          <!-- SERVICES / OPERATIONS -->
+          <section id="sec-services" class="section">
+            <div class="section-toolbar">
+              <button class="btn-primary" id="newServiceBtn">+ New Service</button>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Name</th><th>Description</th><th>Price</th><th>Limitations</th><th>Actions</th></tr></thead>
+                <tbody id="servicesTbody"></tbody>
+              </table>
+            </div>
+            <div class="card mt">
+              <div class="card-head"><h2>Price Change Log</h2></div>
+              <div id="priceChangesList" class="item-list"></div>
+            </div>
+          </section>
+
+          <!-- SERVICE HISTORY -->
+          <section id="sec-history" class="section">
+            <div class="section-toolbar">
+              <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)">
+                Filter by vehicle:
+                <select id="historyVehicleFilter" style="min-width:200px">
+                  <option value="">All vehicles</option>
+                </select>
+              </label>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Date</th><th>Vehicle ID</th><th>Description</th><th>Parts</th><th>Work Hours</th></tr></thead>
+                <tbody id="historyTbody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- NOTIFICATIONS -->
+          <section id="sec-notifications" class="section">
+            <div id="notificationsList" class="item-list"></div>
+          </section>
+
+        </main>
+      </div>
+    </div>
+
+    <!-- MODAL OVERLAY -->
+    <div id="modalOverlay" class="modal-overlay hidden">
+      <div class="modal" id="modal">
+        <div class="modal-head">
+          <h2 id="modalTitle">Form</h2>
+          <button class="modal-close" id="modalClose">✕</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+      </div>
+    </div>
+
+    <!-- COMPLETE REPAIR MODAL -->
+    <div id="completeOverlay" class="modal-overlay hidden">
+      <div class="modal" id="completeModal">
+        <div class="modal-head">
+          <h2>Complete Repair &amp; Issue Invoice</h2>
+          <button class="modal-close" id="completeClose">✕</button>
+        </div>
+        <div class="modal-body">
+          <form id="completeRepairForm" class="form-grid">
+            <input type="hidden" name="repairOrderId">
+            <label>Work Hours
+              <input name="actualWorkHours" value="3.5" type="number" min="0" step="0.25">
+            </label>
+            <label>Service Note
+              <textarea name="note" rows="3">Repair completed, vehicle road tested.</textarea>
+            </label>
+            <label class="check-label">
+              <input name="markAllTasksDone" type="checkbox" checked>
+              Mark all tasks as done
+            </label>
+            <div class="form-actions">
+              <button type="submit" class="btn-primary">Create Invoice</button>
             </div>
           </form>
-          <section class="panel">
-            <div class="section-head">
-              <h2>Stock</h2>
-              <input id="inventorySearch" placeholder="Search code or name">
-            </div>
-            <div id="inventoryList" class="list"></div>
-          </section>
+          <pre id="invoiceResult" class="invoice-output hidden"></pre>
         </div>
-      </section>
-
-      <section id="operations" class="view">
-        <div class="split">
-          <form id="operationForm" class="panel">
-            <h2>Change service price</h2>
-            <label>Operation<select name="operationId" id="operationSelect"></select></label>
-            <label>New price<input name="newPrice" value="59.00" type="number" min="0" step="0.01"></label>
-            <label>Description<input name="description" value="Diagnostics with detailed report"></label>
-            <label>Reason<textarea name="reason" rows="3">Supplier and labor price update</textarea></label>
-            <button type="submit">Update price</button>
-          </form>
-          <section class="panel">
-            <h2>Operations</h2>
-            <div id="operationList" class="list"></div>
-          </section>
-        </div>
-      </section>
-
-      <section id="completion" class="view">
-        <div class="split">
-          <form id="completionForm" class="panel">
-            <h2>Complete repair</h2>
-            <label>Repair order<select name="repairOrderId" id="completionOrderSelect"></select></label>
-            <label>Work hours<input name="actualWorkHours" value="3.5" type="number" min="0" step="0.25"></label>
-            <label class="check"><input name="markAllTasksDone" type="checkbox" checked> Mark all tasks done</label>
-            <label>Service note<textarea name="note" rows="4">Repair completed, vehicle road tested.</textarea></label>
-            <button type="submit">Create invoice</button>
-          </form>
-          <section class="panel">
-            <h2>Invoice</h2>
-            <pre id="invoiceOutput" class="output"></pre>
-          </section>
-        </div>
-      </section>
-    </main>
+      </div>
+    </div>
 
     <script type="module" src="./app.js"></script>
   </body>

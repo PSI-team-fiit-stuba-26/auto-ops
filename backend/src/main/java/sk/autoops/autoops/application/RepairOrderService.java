@@ -65,6 +65,12 @@ public class RepairOrderService {
         return repairOrderRepository.findAll();
     }
 
+    public void deleteRepairOrder(UUID id) {
+        if (!repairOrderRepository.delete(id)) {
+            throw new IllegalArgumentException("Repair order not found");
+        }
+    }
+
     private Customer resolveCustomer(CreateRepairOrderRequest request) {
         if (request.customerId() != null) {
             return customerService.findCustomer(request.customerId());

@@ -27,6 +27,20 @@ public class CustomerService {
         return customerRepository.save(customer);
     }
 
+    public Customer updateCustomer(UUID id, String name, String email, String phone) {
+        Customer customer = findCustomer(id);
+        if (name != null && !name.isBlank()) customer.name = name;
+        if (email != null && !email.isBlank()) customer.email = email;
+        if (phone != null && !phone.isBlank()) customer.phone = phone;
+        return customerRepository.save(customer);
+    }
+
+    public void deleteCustomer(UUID id) {
+        if (!customerRepository.delete(id)) {
+            throw new IllegalArgumentException("Customer not found");
+        }
+    }
+
     public List<Customer> findAll() {
         return customerRepository.findAll();
     }
