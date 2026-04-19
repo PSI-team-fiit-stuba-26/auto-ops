@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.math.RoundingMode;
 
 @Service
 public class RepairCompletionService {
@@ -33,6 +34,8 @@ public class RepairCompletionService {
     private final BillingGateway billingGateway;
     private final PaymentGateway paymentGateway;
     private final NotificationService notificationService;
+
+    private static final BigDecimal VAT_RATE = new BigDecimal("0.20");
 
     public RepairCompletionService(
             RepairOrderRepository repairOrderRepository,
@@ -73,7 +76,8 @@ public class RepairCompletionService {
                 invoice.invoiceNumber(),
                 invoice.workAmount(),
                 invoice.partsAmount(),
-                invoice.subTotalAmount(),
+                invoice.subtotalAmount(),
+                invoice.vatRate(),
                 invoice.vatAmount(),
                 invoice.totalAmount(),
                 paymentStatus
@@ -114,36 +118,34 @@ public class RepairCompletionService {
     private InvoiceSummary createInvoice(RepairOrder repairOrder) {
         Mechanic mechanic = mechanicRepository.findById(repairOrder.mechanicId)
                 .orElseThrow(() -> new IllegalStateException("Cannot calculate invoice: mechanic wage is missing"));
+
         if (mechanic.wage == null) {
             throw new IllegalStateException("Cannot calculate invoice: mechanic wage is missing");
         }
+
         BigDecimal workAmount = mechanic.wage.multiply(BigDecimal.valueOf(repairOrder.actualWorkHours));
+
         BigDecimal partsAmount = repairOrder.usedParts.stream()
                 .map(UsedPart::total)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal subTotalAmount = workAmount.add(partsAmount);
-        
-        // Calculate VAT (assuming 20%)
-        BigDecimal vatRate = new BigDecimal("0.20");
-        BigDecimal vatAmount = subTotalAmount.multiply(vatRate);
-        BigDecimal totalAmount = subTotalAmount.add(vatAmount);
+
+        BigDecimal subtotalAmount = workAmount.add(partsAmount);
+        BigDecimal vatAmount = subtotalAmount.multiply(VAT_RATE).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalAmount = subtotalAmount.add(vatAmount);
 
         UUID invoiceId = UUID.randomUUID();
         String invoiceNumber = billingGateway.issueInvoiceNumber(repairOrder.id, totalAmount);
-        return new InvoiceSummary(invoiceId, invoiceNumber, workAmount, partsAmount, subTotalAmount, vatAmount, totalAmount, PaymentStatus.NOT_CREATED);
-    }
 
-    public RepairOrder payInvoice(UUID repairOrderId) {
-        RepairOrder repairOrder = repairOrderRepository.findById(repairOrderId)
-                .orElseThrow(() -> new IllegalArgumentException("Repair order not found"));
-        
-        if (repairOrder.status != RepairOrderStatus.READY_FOR_PAYMENT) {
-            throw new IllegalStateException("Repair order is not ready for payment");
-        }
-
-        // Simulate payment success and update accounting/status
-        repairOrder.status = RepairOrderStatus.COMPLETED;
-        repairOrderRepository.save(repairOrder);
-        return repairOrder;
+        return new InvoiceSummary(
+                invoiceId,
+                invoiceNumber,
+                workAmount,
+                partsAmount,
+                subtotalAmount,
+                VAT_RATE,
+                vatAmount,
+                totalAmount,
+                PaymentStatus.NOT_CREATED
+        );
     }
 }

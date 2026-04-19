@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
-import { extname, join, normalize } from "node:path";
+import { extname, join, normalize, sep } from "node:path";
+import { fileURLToPath } from 'url';
 
 const root = new URL(".", import.meta.url).pathname;
 const port = Number(process.env.PORT || 5173);
@@ -15,12 +16,26 @@ createServer(async (request, response) => {
   try {
     const url = new URL(request.url, `http://${request.headers.host}`);
     const requestedPath = url.pathname === "/" ? "/index.html" : url.pathname;
-    const filePath = normalize(join(root, requestedPath));
-    if (!filePath.startsWith(root)) {
+    
+    let filePath = join(root, requestedPath);
+
+    if (process.platform === 'win32' && filePath.startsWith('\\')) {
+      filePath = filePath.substring(1);
+    }
+    
+    console.log("ROOT:", root);
+    console.log("FILEPATH:", filePath);
+    const checkRoot = root.toLowerCase().replace(/\\/g, '/').replace(/^\//, '');
+    const checkFile = filePath.toLowerCase().replace(/\\/g, '/').replace(/^\//, '');
+    
+    if (!checkFile.startsWith(checkRoot)) {
       response.writeHead(403);
       response.end("Forbidden");
       return;
     }
+
+    console.log("FINAL SYSTEM PATH:", filePath);
+
     const body = await readFile(filePath);
     response.writeHead(200, { "Content-Type": types[extname(filePath)] || "application/octet-stream" });
     response.end(body);
