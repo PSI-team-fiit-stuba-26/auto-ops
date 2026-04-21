@@ -24,8 +24,8 @@ public class NotificationService {
         sendNotification("Repair " + repairOrder.id + " was completed and invoice was created.", NotificationType.REPAIR_COMPLETED, repairOrder.customerId);
     }
 
-    public void notifyMechanicAssigned(RepairOrder repairOrder) {
-        String message = "New order assigned: \"" + repairOrder.problemDescription + "\" — scheduled for " + repairOrder.plannedStart + ".";
+    public void notifyMechanicAssigned(RepairOrder repairOrder, String mechanicName) {
+        String message = "New order assigned to " + mechanicName + ": \"" + repairOrder.problemDescription + "\" — scheduled for " + repairOrder.plannedStart + ".";
         sendNotification(message, NotificationType.ORDER_ASSIGNED, repairOrder.mechanicId);
     }
 
