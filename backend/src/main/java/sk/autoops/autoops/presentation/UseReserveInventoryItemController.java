@@ -45,22 +45,20 @@ public class UseReserveInventoryItemController {
     }
 
     @PostMapping("/use")
-    public InventoryActionResponse useInventoryItem(@Valid @RequestBody UseInventoryItemRequest request) {
+    public ResponseEntity<Void> useInventoryItem(@Valid @RequestBody UseInventoryItemRequest request) {
         useReserveInventoryItemService.useInventoryItem(request);
         InventoryItem item = useReserveInventoryItemService.findInventoryItem(null).stream()
                 .filter(candidate -> candidate.id.equals(request.itemId()))
                 .findFirst()
                 .orElseThrow();
-        return new InventoryActionResponse(item, List.of());
     }
 
     @PostMapping("/reserve")
-    public InventoryActionResponse reserveInventoryItem(@Valid @RequestBody ReserveInventoryItemRequest request) {
+    public ResponseEntity<Void> reserveInventoryItem(@Valid @RequestBody ReserveInventoryItemRequest request) {
         useReserveInventoryItemService.reserveInventoryItem(request);
         InventoryItem item = useReserveInventoryItemService.findInventoryItem(null).stream()
                 .filter(candidate -> candidate.id.equals(request.itemId()))
                 .findFirst()
                 .orElseThrow();
-        return new InventoryActionResponse(item, List.of("Item reserved for repair order."));
     }
 }
