@@ -1343,6 +1343,60 @@ async function renderNotifications() {
   `).join("");
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// SERVICE HISTORY
+// ══════════════════════════════════════════════════════════════════════════
+
+async function renderHistory() {
+  try {
+    const data = await api("/api/service-history");
+    state.history = data;
+    
+    const select = $("#historyVehicleFilter");
+    const currentVal = select.value;
+    select.innerHTML = '<option value="">All vehicles</option>';
+    state.vehicles.forEach(v => {
+      select.innerHTML += `<option value="${v.id}">${v.licensePlate} (${v.brand} ${v.model})</option>`;
+    });
+    select.value = currentVal;
+    
+    select.onchange = () => {
+      displayHistory(select.value);
+    };
+    
+    displayHistory(select.value);
+  } catch (e) {
+    console.error("Failed to load history", e);
+  }
+}
+
+function displayHistory(vehicleId) {
+  const tbody = $("#historyTbody");
+  tbody.innerHTML = "";
+  
+  let filtered = state.history || [];
+  if (vehicleId) {
+    filtered = filtered.filter(h => h.vehicleId === vehicleId);
+  }
+  
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--muted)">No service history found.</td></tr>`;
+    return;
+  }
+  
+  filtered.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).forEach(h => {
+    const v = state.vehicles.find(xx => xx.id === h.vehicleId);
+    const vStr = v ? `${v.licensePlate} / ${v.brand} ${v.model}` : h.vehicleId;
+    tbody.innerHTML += `<tr>
+      <td>${new Date(h.createdAt).toLocaleString()}</td>
+      <td>${vStr}</td>
+      <td>${h.description || "-"}</td>
+      <td>${h.usedPartsSummary || "-"}</td>
+      <td>${h.workHours}</td>
+    </tr>`;
+  });
+}
+
 // ── Bootstrap ──────────────────────────────────────────────────────────────
 if (checkAuth()) {
   loadAll();

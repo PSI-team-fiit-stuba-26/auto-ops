@@ -26,6 +26,7 @@ public class RepairOrder {
     public List<RepairTask> tasks = new ArrayList<>();
     public List<UsedPart> usedParts = new ArrayList<>();
     public List<RepairFlag> flags = new ArrayList<>();
+    public String completionNote;
 
     public RepairOrder() {
     }

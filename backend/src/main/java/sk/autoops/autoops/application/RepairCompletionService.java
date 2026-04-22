@@ -67,9 +67,9 @@ public class RepairCompletionService {
         repairOrder.actualWorkHours = request.actualWorkHours();
         repairOrder.completedAt = LocalDateTime.now();
         repairOrder.status = RepairOrderStatus.READY_FOR_PAYMENT;
+        repairOrder.completionNote = request.note();
 
         InvoiceSummary invoice = createInvoice(repairOrder);
-        ServiceHistoryEntry historyEntry = createServiceHistory(repairOrder, request.note());
         PaymentStatus paymentStatus = paymentGateway.createPaymentRequest(repairOrder.id, invoice.totalAmount());
         InvoiceSummary payableInvoice = new InvoiceSummary(
                 invoice.invoiceId(),
@@ -94,7 +94,7 @@ public class RepairCompletionService {
             warnings.add("Invoice exceeds customer's maximum expected price.");
         }
         repairOrderRepository.save(repairOrder);
-        return new CompleteRepairResponse(repairOrder.id, repairOrder.status, repairOrder, payableInvoice, paymentStatus, historyEntry, warnings);
+        return new CompleteRepairResponse(repairOrder.id, repairOrder.status, repairOrder, payableInvoice, paymentStatus, null, warnings);
     }
 
     public void payInvoice(UUID repairOrderId) {
@@ -102,6 +102,7 @@ public class RepairCompletionService {
                 .orElseThrow(() -> new IllegalArgumentException("Repair order not found"));
 
         repairOrder.status = RepairOrderStatus.COMPLETED;
+        createServiceHistory(repairOrder, repairOrder.completionNote);
         repairOrderRepository.save(repairOrder);
     }
 

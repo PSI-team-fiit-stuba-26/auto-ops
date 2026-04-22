@@ -51,6 +51,7 @@ public class UseReserveInventoryItemController {
                 .filter(candidate -> candidate.id.equals(request.itemId()))
                 .findFirst()
                 .orElseThrow();
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/reserve")
@@ -60,5 +61,6 @@ public class UseReserveInventoryItemController {
                 .filter(candidate -> candidate.id.equals(request.itemId()))
                 .findFirst()
                 .orElseThrow();
+        return ResponseEntity.ok().build();
     }
 }
