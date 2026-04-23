@@ -34,7 +34,7 @@ public class UseReserveInventoryItemController {
     }
 
     @PutMapping("/{id}")
-    public InventoryItem updateItem(@PathVariable UUID id, @RequestBody UpdateInventoryItemRequest request) {
+    public InventoryItem updateItem(@PathVariable UUID id, @Valid @RequestBody UpdateInventoryItemRequest request) {
         return useReserveInventoryItemService.updateItem(id, request.name(), request.count(), request.location(), request.price());
     }
 

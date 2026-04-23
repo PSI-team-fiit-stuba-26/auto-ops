@@ -1,5 +1,6 @@
 package sk.autoops.autoops.presentation;
 
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sk.autoops.autoops.application.CustomerService;
@@ -9,6 +10,8 @@ import sk.autoops.autoops.domain.Customer;
 import sk.autoops.autoops.domain.Mechanic;
 import sk.autoops.autoops.domain.Vehicle;
 import sk.autoops.autoops.domain.enums.MechanicSpecialty;
+import sk.autoops.autoops.dto.CreateCustomerRequest;
+import sk.autoops.autoops.dto.CreateVehicleRequest;
 import sk.autoops.autoops.dto.UpdateCustomerRequest;
 import sk.autoops.autoops.dto.UpdateVehicleRequest;
 import sk.autoops.autoops.domain.enums.UserRole;
@@ -48,13 +51,17 @@ public class PlanningController {
 
     @PostMapping("/customers")
     @RequireRole({UserRole.ADMIN, UserRole.SERVICE_ADVISOR})
-    public Customer newCustomer(@RequestBody Customer customer) {
+    public Customer newCustomer(@Valid @RequestBody CreateCustomerRequest request) {
+        Customer customer = new Customer();
+        customer.name = request.name();
+        customer.email = request.email();
+        customer.phone = request.phone();
         return customerService.registerCustomer(customer);
     }
 
     @PutMapping("/customers/{id}")
     @RequireRole({UserRole.ADMIN, UserRole.SERVICE_ADVISOR})
-    public Customer updateCustomer(@PathVariable UUID id, @RequestBody UpdateCustomerRequest request) {
+    public Customer updateCustomer(@PathVariable UUID id, @Valid @RequestBody UpdateCustomerRequest request) {
         return customerService.updateCustomer(id, request.name(), request.email(), request.phone());
     }
 
@@ -85,13 +92,21 @@ public class PlanningController {
 
     @PostMapping("/vehicles")
     @RequireRole({UserRole.ADMIN, UserRole.SERVICE_ADVISOR})
-    public Vehicle newVehicle(@RequestBody Vehicle vehicle) {
+    public Vehicle newVehicle(@Valid @RequestBody CreateVehicleRequest request) {
+        Vehicle vehicle = new Vehicle();
+        vehicle.vin = request.vin();
+        vehicle.licensePlate = request.licensePlate();
+        vehicle.brand = request.brand();
+        vehicle.model = request.model();
+        vehicle.year = request.year();
+        vehicle.mileage = request.mileage();
+        vehicle.customerId = request.customerId();
         return vehicleService.registerVehicle(vehicle);
     }
 
     @PutMapping("/vehicles/{id}")
     @RequireRole({UserRole.ADMIN, UserRole.SERVICE_ADVISOR})
-    public Vehicle updateVehicle(@PathVariable UUID id, @RequestBody UpdateVehicleRequest request) {
+    public Vehicle updateVehicle(@PathVariable UUID id, @Valid @RequestBody UpdateVehicleRequest request) {
         return vehicleService.updateVehicleFields(id, request.licensePlate(), request.brand(), request.model(), request.year(), request.mileage());
     }
 

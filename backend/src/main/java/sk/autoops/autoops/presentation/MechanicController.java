@@ -36,7 +36,7 @@ public class MechanicController {
     }
 
     @PutMapping("/{id}")
-    public Mechanic update(@PathVariable UUID id, @RequestBody UpdateMechanicRequest request) {
+    public Mechanic update(@PathVariable UUID id, @Valid @RequestBody UpdateMechanicRequest request) {
         return mechanicService.update(id, request.name(), request.specialties(), request.workLimitations(), request.wage());
     }
 
