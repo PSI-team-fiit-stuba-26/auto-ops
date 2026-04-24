@@ -117,6 +117,12 @@ public class PlanningController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/vehicles/{id}/history")
+    public List<sk.autoops.autoops.domain.ServiceHistoryEntry> vehicleHistory(@PathVariable UUID id) {
+        vehicleService.findVehicle(id);
+        return vehicleService.findRepairHistory(id);
+    }
+
     @GetMapping("/mechanics/available")
     public List<Mechanic> availableMechanics(
             @RequestParam(required = false) MechanicSpecialty specialty,
