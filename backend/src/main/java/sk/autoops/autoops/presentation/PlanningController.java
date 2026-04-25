@@ -12,6 +12,7 @@ import sk.autoops.autoops.domain.Vehicle;
 import sk.autoops.autoops.domain.enums.MechanicSpecialty;
 import sk.autoops.autoops.dto.CreateCustomerRequest;
 import sk.autoops.autoops.dto.CreateVehicleRequest;
+import sk.autoops.autoops.dto.PagedResponse;
 import sk.autoops.autoops.dto.UpdateCustomerRequest;
 import sk.autoops.autoops.dto.UpdateVehicleRequest;
 import sk.autoops.autoops.domain.enums.UserRole;
@@ -37,6 +38,22 @@ public class PlanningController {
     @GetMapping("/customers")
     public List<Customer> customers() {
         return customerService.findAll();
+    }
+
+    @GetMapping("/customers/page")
+    public PagedResponse<Customer> customersPaged(
+            @RequestParam(required = false) String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        String needle = query == null ? null : query.trim().toLowerCase();
+        List<Customer> filtered = customerService.findAll().stream()
+                .filter(customer -> needle == null || needle.isEmpty()
+                        || (customer.name != null && customer.name.toLowerCase().contains(needle))
+                        || (customer.email != null && customer.email.toLowerCase().contains(needle))
+                        || (customer.phone != null && customer.phone.toLowerCase().contains(needle)))
+                .toList();
+        return PagedResponse.of(filtered, page, size);
     }
 
     @GetMapping("/customers/search")
