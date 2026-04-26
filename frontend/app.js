@@ -771,8 +771,21 @@ $("#refreshOrdersBtn").addEventListener("click", async () => {
   setStatus("Refreshed.", "ok");
 });
 
+async function confirmAction(opts) {
+  if (typeof window.confirmDialog === "function") {
+    return window.confirmDialog(opts);
+  }
+  return confirm(opts.message || "Are you sure?");
+}
+
 async function deleteOrder(id) {
-  if (!confirm("Delete this repair order?")) return;
+  const ok = await confirmAction({
+    title: "Delete repair order",
+    message: "Delete this repair order? This cannot be undone.",
+    confirmText: "Delete",
+    danger: true
+  });
+  if (!ok) return;
   await api(`/api/repair-orders/${id}`, { method: "DELETE" });
   state.orders = state.orders.filter((o) => o.id !== id);
   renderOrders();
@@ -781,7 +794,12 @@ async function deleteOrder(id) {
 window.deleteOrder = deleteOrder;
 
 async function payRepairOrder(id) {
-  if (!confirm("Mark this invoice as paid?")) return;
+  const ok = await confirmAction({
+    title: "Confirm payment",
+    message: "Mark this invoice as paid?",
+    confirmText: "Mark paid"
+  });
+  if (!ok) return;
   try {
     await api(`/api/repairs/${id}/pay`, { method: "POST" });
     state.orders = await api("/api/repair-orders");
@@ -902,7 +920,13 @@ function editCustomer(id) {
 window.editCustomer = editCustomer;
 
 async function deleteCustomer(id) {
-  if (!confirm("Delete this customer?")) return;
+  const ok = await confirmAction({
+    title: "Delete customer",
+    message: "Delete this customer? This action cannot be undone.",
+    confirmText: "Delete",
+    danger: true
+  });
+  if (!ok) return;
   await api(`/api/planning/customers/${id}`, { method: "DELETE" });
   state.customers = state.customers.filter((c) => c.id !== id);
   renderCustomers();
@@ -1001,7 +1025,13 @@ function editVehicle(id) {
 window.editVehicle = editVehicle;
 
 async function deleteVehicle(id) {
-  if (!confirm("Delete this vehicle?")) return;
+  const ok = await confirmAction({
+    title: "Delete vehicle",
+    message: "Delete this vehicle? Service history will be retained but the vehicle record will be removed.",
+    confirmText: "Delete",
+    danger: true
+  });
+  if (!ok) return;
   await api(`/api/planning/vehicles/${id}`, { method: "DELETE" });
   state.vehicles = state.vehicles.filter((v) => v.id !== id);
   renderVehicles();
@@ -1091,7 +1121,13 @@ function editMechanic(id) {
 window.editMechanic = editMechanic;
 
 async function deleteMechanic(id) {
-  if (!confirm("Delete this mechanic?")) return;
+  const ok = await confirmAction({
+    title: "Delete mechanic",
+    message: "Delete this mechanic? Open work assignments will need to be reassigned.",
+    confirmText: "Delete",
+    danger: true
+  });
+  if (!ok) return;
   await api(`/api/mechanics/${id}`, { method: "DELETE" });
   state.mechanics = state.mechanics.filter((m) => m.id !== id);
   renderMechanics();
@@ -1196,7 +1232,13 @@ function editItem(id) {
 window.editItem = editItem;
 
 async function deleteItem(id) {
-  if (!confirm("Delete this inventory item?")) return;
+  const ok = await confirmAction({
+    title: "Delete inventory item",
+    message: "Delete this inventory item? Active reservations on this part will be lost.",
+    confirmText: "Delete",
+    danger: true
+  });
+  if (!ok) return;
   await api(`/api/inventory/${id}`, { method: "DELETE" });
   state.inventory = state.inventory.filter((i) => i.id !== id);
   renderInventory();
