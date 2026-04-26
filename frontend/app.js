@@ -40,7 +40,13 @@ function invBadge(status) {
 }
 
 function setStatus(msg, type = "info") {
+  const mapped = type === "ok" ? "success" : type;
+  if (window.toast && typeof window.toast.show === "function") {
+    window.toast.show(msg, { type: mapped });
+    return;
+  }
   const el = $("#globalStatus");
+  if (!el) return;
   el.textContent = msg;
   el.className = `global-status ${type}`;
   if (type !== "error") setTimeout(() => { el.className = "global-status"; }, 3500);
