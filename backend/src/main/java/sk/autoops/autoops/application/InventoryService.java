@@ -57,10 +57,10 @@ public class InventoryService {
         if (amount <= 0) {
             throw new IllegalArgumentException("Amount must be greater than zero");
         }
-        int availableToReserve = item.count - item.reservedCount;
-        if (availableToReserve < amount) {
-            throw new IllegalStateException("Insufficient stock to reserve. Available: " + availableToReserve);
-        }
+        // int availableToReserve = item.count - item.reservedCount;
+        // if (availableToReserve < amount) {
+        //     throw new IllegalStateException("Insufficient stock to reserve. Available: " + availableToReserve);
+        // }
         item.reservedCount += amount;
         refreshStatus(item);
         inventoryItemRepository.save(item);
