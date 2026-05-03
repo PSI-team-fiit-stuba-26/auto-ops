@@ -70,6 +70,30 @@ public class DataSeeder implements CommandLineRunner {
         admin.role = UserRole.ADMIN;
         admin.createdAt = LocalDateTime.now();
         userRepository.save(admin);
+
+        User advisor = new User();
+        advisor.id = UUID.randomUUID();
+        advisor.name = "Service Advisor";
+        advisor.email = "advisor@autoops.local";
+        advisor.role = UserRole.SERVICE_ADVISOR;
+        advisor.createdAt = LocalDateTime.now();
+        userRepository.save(advisor);
+
+        User customerUser = new User();
+        customerUser.id = CUSTOMER_ID;
+        customerUser.name = "Peter Novak";
+        customerUser.email = "peter.novak@example.com";
+        customerUser.role = UserRole.CUSTOMER;
+        customerUser.createdAt = LocalDateTime.now();
+        userRepository.save(customerUser);
+
+        User mechanicUser = new User();
+        mechanicUser.id = MECHANIC_ENGINE_ID;
+        mechanicUser.name = "Marek Engine";
+        mechanicUser.email = "marek@autoops.local";
+        mechanicUser.role = UserRole.MECHANIC;
+        mechanicUser.createdAt = LocalDateTime.now();
+        userRepository.save(mechanicUser);
     }
 
     private void seedMechanics() {

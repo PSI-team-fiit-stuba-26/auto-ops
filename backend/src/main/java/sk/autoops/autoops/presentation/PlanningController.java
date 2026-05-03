@@ -11,6 +11,7 @@ import sk.autoops.autoops.domain.Vehicle;
 import sk.autoops.autoops.domain.enums.MechanicSpecialty;
 import sk.autoops.autoops.dto.UpdateCustomerRequest;
 import sk.autoops.autoops.dto.UpdateVehicleRequest;
+import sk.autoops.autoops.domain.enums.UserRole;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,6 +19,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/planning")
+@RequireRole({UserRole.ADMIN, UserRole.SERVICE_ADVISOR, UserRole.MECHANIC, UserRole.CUSTOMER})
 public class PlanningController {
     private final CustomerService customerService;
     private final VehicleService vehicleService;
@@ -45,16 +47,19 @@ public class PlanningController {
     }
 
     @PostMapping("/customers")
+    @RequireRole({UserRole.ADMIN, UserRole.SERVICE_ADVISOR})
     public Customer newCustomer(@RequestBody Customer customer) {
         return customerService.registerCustomer(customer);
     }
 
     @PutMapping("/customers/{id}")
+    @RequireRole({UserRole.ADMIN, UserRole.SERVICE_ADVISOR})
     public Customer updateCustomer(@PathVariable UUID id, @RequestBody UpdateCustomerRequest request) {
         return customerService.updateCustomer(id, request.name(), request.email(), request.phone());
     }
 
     @DeleteMapping("/customers/{id}")
+    @RequireRole({UserRole.ADMIN, UserRole.SERVICE_ADVISOR})
     public ResponseEntity<Void> deleteCustomer(@PathVariable UUID id) {
         customerService.deleteCustomer(id);
         return ResponseEntity.noContent().build();
@@ -79,16 +84,19 @@ public class PlanningController {
     }
 
     @PostMapping("/vehicles")
+    @RequireRole({UserRole.ADMIN, UserRole.SERVICE_ADVISOR})
     public Vehicle newVehicle(@RequestBody Vehicle vehicle) {
         return vehicleService.registerVehicle(vehicle);
     }
 
     @PutMapping("/vehicles/{id}")
+    @RequireRole({UserRole.ADMIN, UserRole.SERVICE_ADVISOR})
     public Vehicle updateVehicle(@PathVariable UUID id, @RequestBody UpdateVehicleRequest request) {
         return vehicleService.updateVehicleFields(id, request.licensePlate(), request.brand(), request.model(), request.year(), request.mileage());
     }
 
     @DeleteMapping("/vehicles/{id}")
+    @RequireRole({UserRole.ADMIN, UserRole.SERVICE_ADVISOR})
     public ResponseEntity<Void> deleteVehicle(@PathVariable UUID id) {
         vehicleService.deleteVehicle(id);
         return ResponseEntity.noContent().build();

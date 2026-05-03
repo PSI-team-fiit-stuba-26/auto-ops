@@ -1,6 +1,8 @@
 // ── State ──────────────────────────────────────────────────────────────────
 const state = {
   apiBase: localStorage.getItem("autoopsApiBase") || "http://localhost:8080",
+  token: localStorage.getItem("autoopsToken") || null,
+  currentUser: JSON.parse(localStorage.getItem("autoopsUser") || "null"),
   orders: [],
   customers: [],
   vehicles: [],
@@ -39,18 +41,91 @@ function setStatus(msg, type = "info") {
 
 // ── API ────────────────────────────────────────────────────────────────────
 async function api(path, options = {}) {
+  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  if (state.token) {
+    headers["Authorization"] = `Bearer ${state.token}`;
+  }
   const res = await fetch(`${state.apiBase}${path}`, {
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    headers,
     ...options
   });
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
+  if (res.status === 401 || res.status === 403) {
+    if (res.status === 401) {
+      logout();
+    }
+    throw new Error(data?.message || res.statusText || "Unauthorized");
+  }
   if (!res.ok) throw new Error(data?.message || res.statusText);
   return data;
 }
 
+// ── Auth ──────────────────────────────────────────────────────────────────
+function checkAuth() {
+  if (!state.token || !state.currentUser) {
+    $("#loginScreenContainer").classList.remove("hidden");
+    return false;
+  }
+  $("#loginScreenContainer").classList.add("hidden");
+  $("#currentUserLabel").textContent = `${state.currentUser.name} (${state.currentUser.role})`;
+  applyRoleUI();
+  return true;
+}
+
+document.querySelectorAll(".btn-login-option").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const email = btn.dataset.email;
+    try {
+      const user = await api("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email })
+      });
+      state.token = user.id;
+      state.currentUser = user;
+      localStorage.setItem("autoopsToken", state.token);
+      localStorage.setItem("autoopsUser", JSON.stringify(user));
+      checkAuth();
+      loadAll();
+    } catch (err) {
+      alert("Login failed: " + err.message);
+    }
+  });
+});
+
+$("#logoutBtn").addEventListener("click", logout);
+
+function logout() {
+  state.token = null;
+  state.currentUser = null;
+  localStorage.removeItem("autoopsToken");
+  localStorage.removeItem("autoopsUser");
+  checkAuth();
+}
+
+function applyRoleUI() {
+  const role = state.currentUser?.role;
+  const isClient = role === "CUSTOMER";
+  const isMechanic = role === "MECHANIC";
+
+  // Hide parts of UI based on roles
+  const hideIf = (sel, cond) => {
+    document.querySelectorAll(sel).forEach(el => {
+      if (cond) el.style.display = "none";
+      else el.style.display = "";
+    });
+  };
+
+  hideIf(".nav-item[data-section='customers']", isClient || isMechanic);
+  hideIf(".nav-item[data-section='mechanics']", isClient);
+  hideIf(".nav-item[data-section='inventory']", isClient);
+  hideIf(".nav-item[data-section='services']", isClient);
+  hideIf(".section-toolbar", isClient); // Clients usually can't create things here
+}
+
 // ── Load all data ──────────────────────────────────────────────────────────
 async function loadAll() {
+  if (!checkAuth()) return;
   try {
     const [orders, customers, vehicles, mechanics, inventory, operations, notifications, history] = await Promise.all([
       api("/api/repair-orders"),
@@ -793,43 +868,23 @@ function editService(id) {
 window.editService = editService;
 
 // ══════════════════════════════════════════════════════════════════════════
-// SERVICE HISTORY
-// ══════════════════════════════════════════════════════════════════════════
-function renderHistory() {
-  const sel = $("#historyVehicleFilter");
-  const current = sel.value;
-  sel.innerHTML = '<option value="">All vehicles</option>' +
-    state.vehicles.map((v) => `<option value="${v.id}" ${v.id === current ? "selected" : ""}>${esc(v.licensePlate)} ${esc(v.brand)} ${esc(v.model)}</option>`).join("");
-
-  const filter = sel.value;
-  const list = filter ? state.history.filter((h) => h.vehicleId === filter) : state.history;
-  const tbody = $("#historyTbody");
-  if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No service history.</td></tr>';
-    return;
-  }
-  tbody.innerHTML = list.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((h) => `
-    <tr>
-      <td>${fmtDate(h.createdAt)}</td>
-      <td style="font-size:11px;color:var(--muted)">${esc(h.vehicleId)}</td>
-      <td>${esc(h.description)}</td>
-      <td style="font-size:12px;color:var(--muted)">${esc(h.usedPartsSummary)}</td>
-      <td>${h.workHours}h</td>
-    </tr>
-  `).join("");
-}
-
-$("#historyVehicleFilter").addEventListener("change", () => renderHistory());
-
-// ══════════════════════════════════════════════════════════════════════════
 // NOTIFICATIONS
 // ══════════════════════════════════════════════════════════════════════════
-function renderNotifications() {
+
+async function renderNotifications() {
   const el = $("#notificationsList");
+  try {
+    const notifications = await api("/api/notifications");
+    state.notifications = notifications;
+  } catch (e) {
+    console.error("Failed to fetch notifications", e);
+  }
+
   if (!state.notifications.length) {
     el.innerHTML = '<div class="empty-state">No notifications.</div>';
     return;
   }
+  
   el.innerHTML = state.notifications.slice().reverse().map((n) => `
     <div class="list-item">
       <div class="list-item-head">
@@ -842,4 +897,6 @@ function renderNotifications() {
 }
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────
-loadAll();
+if (checkAuth()) {
+  loadAll();
+}
