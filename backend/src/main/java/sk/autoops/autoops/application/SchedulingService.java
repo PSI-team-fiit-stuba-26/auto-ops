@@ -12,13 +12,15 @@ import java.util.List;
 @Service
 public class SchedulingService {
     private final MechanicService mechanicService;
-    private final InventoryService inventoryService;
+    private final UseReserveInventoryItemService inventoryService;
     private final RepairOrderService repairOrderService;
+    private final NotificationService notificationService;
 
-    public SchedulingService(MechanicService mechanicService, InventoryService inventoryService, RepairOrderService repairOrderService) {
+    public SchedulingService(MechanicService mechanicService, UseReserveInventoryItemService inventoryService, RepairOrderService repairOrderService, NotificationService notificationService) {
         this.mechanicService = mechanicService;
         this.inventoryService = inventoryService;
         this.repairOrderService = repairOrderService;
+        this.notificationService = notificationService;
     }
 
     public int estimateDuration(CreateRepairOrderRequest request) {
@@ -48,6 +50,7 @@ public class SchedulingService {
             warnings.add("No spare parts are currently available; order can still be scheduled and flagged.");
         }
         RepairOrder order = repairOrderService.createRepairOrder(request);
+        notificationService.notifyMechanicAssigned(order);
         return new ScheduleRepairResponse(order, mechanicAvailable, partsAvailable, warnings);
     }
 }

@@ -24,6 +24,11 @@ public class NotificationService {
         sendNotification("Repair " + repairOrder.id + " was completed and invoice was created.", NotificationType.REPAIR_COMPLETED, repairOrder.customerId);
     }
 
+    public void notifyMechanicAssigned(RepairOrder repairOrder) {
+        String message = "New order assigned: \"" + repairOrder.problemDescription + "\" — scheduled for " + repairOrder.plannedStart + ".";
+        sendNotification(message, NotificationType.ORDER_ASSIGNED, repairOrder.mechanicId);
+    }
+
     public void sendPriceChangeNotification(Operation operation, PriceChangeLog log) {
         sendNotification("Operation " + operation.name + " price changed from " + log.oldPrice + " to " + log.newPrice + ".", NotificationType.PRICE_CHANGE, log.changedBy);
     }
