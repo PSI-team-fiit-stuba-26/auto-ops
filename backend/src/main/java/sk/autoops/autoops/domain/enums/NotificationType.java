@@ -5,5 +5,6 @@ public enum NotificationType {
     WARNING,
     PRICE_CHANGE,
     REPAIR_COMPLETED,
-    PART_RESERVED
+    PART_RESERVED,
+    ORDER_ASSIGNED
 }

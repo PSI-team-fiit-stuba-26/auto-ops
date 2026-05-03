@@ -12,6 +12,13 @@ const state = {
   currentSection: "dashboard"
 };
 
+let wizardData = {};
+function resetWizard() {
+  if (wizardData._custOutsideClick) document.removeEventListener("click", wizardData._custOutsideClick);
+  if (wizardData._vehOutsideClick) document.removeEventListener("click", wizardData._vehOutsideClick);
+  wizardData = { customer: null, vehicle: null };
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 const $ = (sel) => document.querySelector(sel);
 const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -136,8 +143,8 @@ function openModal(title, html, onSubmit) {
   }
 }
 function closeModal() { $("#modalOverlay").classList.add("hidden"); }
-$("#modalClose").addEventListener("click", closeModal);
-$("#modalOverlay").addEventListener("click", (e) => { if (e.target === $("#modalOverlay")) closeModal(); });
+$("#modalClose").addEventListener("click", () => { resetWizard(); closeModal(); });
+$("#modalOverlay").addEventListener("click", (e) => { if (e.target === $("#modalOverlay")) { resetWizard(); closeModal(); } });
 
 // ══════════════════════════════════════════════════════════════════════════
 // DASHBOARD
@@ -206,49 +213,471 @@ function renderOrders() {
   `).join("");
 }
 
-$("#newOrderBtn").addEventListener("click", () => {
-  const mechOptions = state.mechanics.map((m) => `<option value="${m.id}">${esc(m.name)} (${m.specialties.join(", ")})</option>`).join("");
-  const now = new Date(Date.now() + 2 * 3600000);
-  const end = new Date(Date.now() + 5 * 3600000);
-  const fmt = (d) => d.toISOString().slice(0, 16);
+// ── NEW REPAIR ORDER WIZARD ──────────────────────────────────────────────
+$("#newOrderBtn").addEventListener("click", () => { resetWizard(); renderWizardStep1(); });
+
+function wizardStepsHtml(active) {
+  const s = (n, label) => {
+    const cls = n < active ? "done" : n === active ? "active" : "";
+    return `<div class="wizard-step ${cls}"><span class="wizard-step-num">${n < active ? "✓" : n}</span>${label}</div>`;
+  };
+  return `<div class="wizard-steps">${s(1, "Customer")}<div class="wizard-step-sep"></div>${s(2, "Vehicle")}<div class="wizard-step-sep"></div>${s(3, "Details")}</div>`;
+}
+
+function renderWizardStep1() {
   openModal("New Repair Order", `
-    <form class="form-grid" id="newOrderForm">
-      <label>Customer Name<input name="customerName" required placeholder="Peter Novak"></label>
-      <label>Customer Email<input name="customerEmail" type="email" required placeholder="peter@example.com"></label>
-      <label>Customer Phone<input name="customerPhone" placeholder="+421900111222"></label>
-      <label>VIN<input name="vin" required placeholder="WVWZZZ1KZ6W000001"></label>
-      <label>License Plate<input name="licensePlate" required placeholder="BA-123AB"></label>
-      <label>Brand<input name="brand" placeholder="Volkswagen"></label>
-      <label>Model<input name="model" placeholder="Golf"></label>
-      <label>Year<input name="year" type="number" value="2020"></label>
-      <label>Mileage<input name="mileage" type="number" value="80000"></label>
+    ${wizardStepsHtml(1)}
+    <div style="padding:18px;min-height:300px">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Search for an existing customer or create a new one.</p>
+      <div class="wizard-search-wrap" id="custSearchWrap">
+        <input class="wizard-search-input" id="custSearchInput" placeholder="Type customer name…" autocomplete="off">
+        <div class="search-dropdown" id="custDropdown" style="display:none"></div>
+      </div>
+      <div id="custMiniFormContainer"></div>
+    </div>
+  `, null);
+
+  const searchInput = $("#custSearchInput");
+  const dropdown = $("#custDropdown");
+  const miniContainer = $("#custMiniFormContainer");
+
+  function renderCustDropdown(q) {
+    const matches = q
+      ? state.customers.filter((c) => c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q))
+      : state.customers.slice(0, 8);
+    dropdown.innerHTML = (!matches.length
+      ? `<div style="padding:12px 14px;font-size:13px;color:var(--muted)">No customers found.</div>`
+      : matches.map((c) => `<div class="search-dropdown-item" data-id="${c.id}">${esc(c.name)}<span class="item-sub">${esc(c.email)} · ${esc(c.phone || "—")}</span></div>`).join("")
+    ) + `<button class="search-create-btn" id="custCreateBtn">+ Create new customer</button>`;
+    dropdown.style.display = "block";
+    dropdown.querySelectorAll(".search-dropdown-item").forEach((el) =>
+      el.addEventListener("click", () => { const c = state.customers.find((x) => x.id === el.dataset.id); if (c) selectCustomer(c); })
+    );
+    const cb = dropdown.querySelector("#custCreateBtn");
+    if (cb) cb.addEventListener("click", showCustMiniForm);
+  }
+
+  function selectCustomer(cust) {
+    wizardData.customer = cust;
+    dropdown.style.display = "none";
+    searchInput.value = cust.name; searchInput.disabled = true;
+    miniContainer.innerHTML = `<div class="wizard-selected-pill">Customer: ${esc(cust.name)}</div>`;
+    setTimeout(() => renderWizardStep2(), 350);
+  }
+
+  function showCustMiniForm() {
+    dropdown.style.display = "none"; searchInput.style.display = "none";
+    miniContainer.innerHTML = `
+      <div class="wizard-mini-form">
+        <label>Full Name<input id="newCustName" placeholder="Peter Novak"></label>
+        <label>Email<input id="newCustEmail" type="email" placeholder="peter@example.com"></label>
+        <label>Phone<input id="newCustPhone" placeholder="+421900111222"></label>
+        <div class="wizard-mini-actions">
+          <button class="btn-primary" id="saveCustBtn">Create &amp; Continue</button>
+          <button class="btn-secondary" id="cancelCustBtn">Back to search</button>
+        </div>
+      </div>`;
+    $("#cancelCustBtn").addEventListener("click", () => { miniContainer.innerHTML = ""; searchInput.style.display = ""; searchInput.value = ""; searchInput.focus(); });
+    $("#saveCustBtn").addEventListener("click", async () => {
+      const name = $("#newCustName").value.trim(), email = $("#newCustEmail").value.trim(), phone = $("#newCustPhone").value.trim();
+      if (!name || !email) { setStatus("Name and email are required.", "error"); return; }
+      try {
+        const c = await api("/api/planning/customers", { method: "POST", body: JSON.stringify({ name, email, phone }) });
+        state.customers.push(c); selectCustomer(c);
+      } catch (err) { setStatus(err.message, "error"); }
+    });
+  }
+
+  searchInput.addEventListener("input", () => { const q = searchInput.value.trim(); if (!q) { dropdown.style.display = "none"; return; } renderCustDropdown(q.toLowerCase()); });
+  searchInput.addEventListener("focus", () => { if (searchInput.value.trim()) renderCustDropdown(searchInput.value.trim().toLowerCase()); });
+  function outsideClick(e) { if (!$("#custSearchWrap")?.contains(e.target)) dropdown.style.display = "none"; }
+  document.addEventListener("click", outsideClick);
+  wizardData._custOutsideClick = outsideClick;
+}
+
+function renderWizardStep2() {
+  if (wizardData._custOutsideClick) { document.removeEventListener("click", wizardData._custOutsideClick); delete wizardData._custOutsideClick; }
+  const custId = wizardData.customer.id;
+
+  openModal("New Repair Order", `
+    ${wizardStepsHtml(2)}
+    <div style="padding:18px;min-height:300px">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:8px">
+        Customer: <strong>${esc(wizardData.customer.name)}</strong>
+        &nbsp;·&nbsp;<button class="btn-secondary btn-sm" id="backToStep1">Change</button>
+      </p>
+      <div class="wizard-search-wrap" id="vehSearchWrap">
+        <input class="wizard-search-input" id="vehSearchInput" placeholder="Type license plate…" autocomplete="off">
+        <div class="search-dropdown" id="vehDropdown" style="display:none"></div>
+      </div>
+      <div id="vehMiniFormContainer"></div>
+    </div>
+  `, null);
+
+  $("#backToStep1").addEventListener("click", () => { wizardData.vehicle = null; renderWizardStep1(); });
+
+  const searchInput = $("#vehSearchInput");
+  const dropdown = $("#vehDropdown");
+  const miniContainer = $("#vehMiniFormContainer");
+
+  function renderVehDropdown(q) {
+    const all = q
+      ? state.vehicles.filter((v) => v.licensePlate.toLowerCase().includes(q) || v.vin.toLowerCase().includes(q) || `${v.brand} ${v.model}`.toLowerCase().includes(q))
+      : state.vehicles.slice(0, 12);
+    const sorted = [...all.filter((v) => v.customerId === custId), ...all.filter((v) => v.customerId !== custId)];
+    dropdown.innerHTML = (!sorted.length
+      ? `<div style="padding:12px 14px;font-size:13px;color:var(--muted)">No vehicles found.</div>`
+      : sorted.map((v) => `<div class="search-dropdown-item ${v.customerId === custId ? "customer-match" : ""}" data-id="${v.id}"><strong>${esc(v.licensePlate)}</strong> · ${esc(v.brand)} ${esc(v.model)} (${v.year})<span class="item-sub">VIN: ${esc(v.vin)} · ${v.mileage.toLocaleString()} km</span></div>`).join("")
+    ) + `<button class="search-create-btn" id="vehCreateBtn">+ Create new vehicle</button>`;
+    dropdown.style.display = "block";
+    dropdown.querySelectorAll(".search-dropdown-item").forEach((el) =>
+      el.addEventListener("click", () => { const v = state.vehicles.find((x) => x.id === el.dataset.id); if (v) selectVehicle(v); })
+    );
+    const cb = dropdown.querySelector("#vehCreateBtn");
+    if (cb) cb.addEventListener("click", showVehMiniForm);
+  }
+
+  function selectVehicle(veh) {
+    wizardData.vehicle = veh;
+    dropdown.style.display = "none";
+    searchInput.value = veh.licensePlate; searchInput.disabled = true;
+    miniContainer.innerHTML = `<div class="wizard-selected-pill">Vehicle: ${esc(veh.licensePlate)} — ${esc(veh.brand)} ${esc(veh.model)}</div>`;
+    setTimeout(() => renderWizardStep3(), 350);
+  }
+
+  function showVehMiniForm() {
+    dropdown.style.display = "none"; searchInput.style.display = "none";
+    miniContainer.innerHTML = `
+      <div class="wizard-mini-form">
+        <label>License Plate<input id="newVehPlate" placeholder="BA-123AB"></label>
+        <label>VIN<input id="newVehVin" placeholder="WVWZZZ1KZ6W000001"></label>
+        <label>Brand<input id="newVehBrand" placeholder="Volkswagen"></label>
+        <label>Model<input id="newVehModel" placeholder="Golf"></label>
+        <label>Year<input id="newVehYear" type="number" value="2020"></label>
+        <div class="wizard-mini-actions">
+          <button class="btn-primary" id="saveVehBtn">Create &amp; Continue</button>
+          <button class="btn-secondary" id="cancelVehBtn">Back to search</button>
+        </div>
+      </div>`;
+    $("#cancelVehBtn").addEventListener("click", () => { miniContainer.innerHTML = ""; searchInput.style.display = ""; searchInput.value = ""; searchInput.focus(); });
+    $("#saveVehBtn").addEventListener("click", async () => {
+      const licensePlate = $("#newVehPlate").value.trim(), vin = $("#newVehVin").value.trim();
+      const brand = $("#newVehBrand").value.trim(), model = $("#newVehModel").value.trim();
+      const year = Number($("#newVehYear").value) || 2020;
+      if (!licensePlate || !vin) { setStatus("License plate and VIN are required.", "error"); return; }
+      try {
+        const v = await api("/api/planning/vehicles", { method: "POST", body: JSON.stringify({ licensePlate, vin, brand, model, year, mileage: 0, customerId: custId }) });
+        state.vehicles.push(v); selectVehicle(v);
+      } catch (err) { setStatus(err.message, "error"); }
+    });
+  }
+
+  searchInput.addEventListener("input", () => { const q = searchInput.value.trim(); if (!q) { dropdown.style.display = "none"; return; } renderVehDropdown(q.toLowerCase()); });
+  searchInput.addEventListener("focus", () => { if (searchInput.value.trim()) renderVehDropdown(searchInput.value.trim().toLowerCase()); });
+  function outsideClick(e) { if (!$("#vehSearchWrap")?.contains(e.target)) dropdown.style.display = "none"; }
+  document.addEventListener("click", outsideClick);
+  wizardData._vehOutsideClick = outsideClick;
+}
+
+function renderWizardStep3() {
+  if (wizardData._vehOutsideClick) { document.removeEventListener("click", wizardData._vehOutsideClick); delete wizardData._vehOutsideClick; }
+  if (!state.mechanics.length) { setStatus("No mechanics available. Add a mechanic first.", "error"); return; }
+  if (!wizardData.taskDurations) wizardData.taskDurations = [];
+
+  const veh = wizardData.vehicle;
+  const mechOptions = state.mechanics.map((m) => `<option value="${m.id}">${esc(m.name)} (${m.specialties.join(", ")})</option>`).join("");
+  const now = new Date(Date.now() + 2 * 3600000), end = new Date(Date.now() + 5 * 3600000);
+  const fmt = (d) => d.toISOString().slice(0, 16);
+  const availableParts = state.inventory.filter((i) => i.status === "AVAILABLE" || i.status === "LOW_STOCK");
+
+  openModal("New Repair Order", `
+    ${wizardStepsHtml(3)}
+    <div style="padding:8px 18px 0;font-size:12px;color:var(--muted)">
+      Customer: <strong>${esc(wizardData.customer.name)}</strong>
+      &nbsp;·&nbsp;Vehicle: <strong>${esc(veh.licensePlate)} ${esc(veh.brand)} ${esc(veh.model)}</strong>
+      &nbsp;·&nbsp;<button class="btn-secondary btn-sm" id="backToStep2">Change vehicle</button>
+    </div>
+    <form class="form-grid" style="padding-top:4px" id="orderDetailsForm">
+      <label class="full">Tasks (one per line, optional)<textarea name="taskNames" id="wizTaskNames" rows="4" placeholder="Diagnose issue&#10;Repair&#10;Road test"></textarea></label>
+      <div class="full" id="wizDuration" style="display:none;font-size:12px;color:var(--muted);padding:2px 0 4px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span id="wizDurationText"></span>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);font-weight:normal">
+          Override:
+          <input id="wizDurationOverride" type="number" min="0.5" step="0.5" placeholder="—"
+            style="width:52px;padding:2px 5px;border:1px solid var(--line);border-radius:4px;font-size:12px;color:var(--ink)"> h
+          <button type="button" id="wizDurationReset"
+            style="font-size:11px;padding:1px 7px;background:none;border:1px solid var(--line);border-radius:4px;cursor:pointer;color:var(--muted);min-height:unset">↺ reset</button>
+        </label>
+      </div>
+      <label class="full">Problem Description<textarea name="problemDescription" rows="3" required placeholder="Describe the issue…"></textarea></label>
+      <label>Mileage (km)<input name="mileage" type="number" value="${veh.mileage}" required min="0"></label>
       <label>Max Price (€)<input name="maxPrice" type="number" value="400" min="0" step="0.01"></label>
-      <label>Mechanic<select name="mechanicId">${mechOptions}</select></label>
-      <label>Planned Start<input name="plannedStart" type="datetime-local" value="${fmt(now)}" required></label>
-      <label>Planned Finish<input name="plannedCompletionDate" type="datetime-local" value="${fmt(end)}" required></label>
-      <label class="full">Problem Description<textarea name="problemDescription" rows="2" required placeholder="Describe the issue…"></textarea></label>
-      <label class="full">Tasks (one per line)<textarea name="taskNames" rows="3" placeholder="Diagnose issue&#10;Repair&#10;Road test"></textarea></label>
-      <div class="form-actions"><button type="submit" class="btn-primary">Create Repair Order</button></div>
+      <div class="full">
+        <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px">Mechanic</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px" id="wizSpecFilters">
+          ${["GENERAL","ENGINE","ELECTRICAL","BODYWORK","DIAGNOSTICS","TIRES"].map((s) =>
+            `<button type="button" class="wspec-btn" data-spec="${s}"
+              style="font-size:11px;padding:3px 9px;border:1px solid var(--line);border-radius:12px;background:none;cursor:pointer;color:var(--muted);font-weight:600;min-height:unset">${s}</button>`
+          ).join("")}
+        </div>
+        <select name="mechanicId" id="wizMechanic" style="width:100%">${mechOptions}</select>
+      </div>
+      <label>Planned Start<input name="plannedStart" id="wizStart" type="datetime-local" value="${fmt(now)}" required></label>
+      <label>Planned Finish<input name="plannedCompletionDate" id="wizEnd" type="datetime-local" value="${fmt(end)}" required></label>
+      ${availableParts.length ? `
+      <details class="full" style="margin-top:2px">
+        <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);padding:6px 0;user-select:none">Parts (optional — ${availableParts.length} available)</summary>
+        <div style="margin-top:8px;border:1px solid var(--line);border-radius:8px;overflow:hidden">
+          <div style="padding:8px 10px;border-bottom:1px solid var(--line);background:var(--page)">
+            <input id="wizPartsSearch" type="text" placeholder="Search parts by name or code…" autocomplete="off"
+              style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:13px;box-sizing:border-box">
+          </div>
+          <div style="display:grid;grid-template-columns:20px 1fr 70px 70px 72px;gap:0;padding:6px 12px;font-size:11px;font-weight:700;color:var(--muted);border-bottom:1px solid var(--line);background:var(--page)">
+            <span></span><span>Part</span><span style="text-align:right">Price</span><span style="text-align:right">Avail.</span><span style="text-align:right">Qty</span>
+          </div>
+          <div id="wizPartsList" style="max-height:180px;overflow-y:auto">
+            ${availableParts.map((p) => `
+            <div class="wpart-row" data-name="${esc((p.name + " " + p.code).toLowerCase())}"
+              style="display:grid;grid-template-columns:20px 1fr 70px 70px 72px;align-items:center;gap:0;padding:7px 12px;border-bottom:1px solid var(--line);font-size:13px">
+              <input type="checkbox" id="wpart_${p.id}" name="part_${p.id}" value="${p.id}" style="margin:0">
+              <label for="wpart_${p.id}" style="cursor:pointer;font-weight:normal;padding:0 8px;min-width:0">
+                <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.name)}</div>
+                <div style="font-size:11px;color:var(--muted)">${esc(p.code)}</div>
+              </label>
+              <span style="text-align:right;color:var(--muted)">${money(p.price)}</span>
+              <span style="text-align:right;color:var(--muted)">${p.count - p.reservedCount}</span>
+              <input type="number" name="qty_${p.id}" id="wqty_${p.id}" min="1" max="${p.count - p.reservedCount}" value="1"
+                style="width:60px;margin-left:auto;text-align:right;border:1px solid var(--line);border-radius:4px;padding:3px 5px;font:inherit;font-size:13px" disabled>
+            </div>`).join("")}
+          </div>
+        </div>
+      </details>` : ""}
+      <div class="form-actions"><button type="submit" id="wizSubmitBtn" class="btn-primary">Create Repair Order</button></div>
+      <div id="wizStep3Status" class="full" style="display:none"></div>
     </form>
-  `, async (fd) => {
-    const payload = {
-      customerName: fd.get("customerName"), customerEmail: fd.get("customerEmail"),
-      customerPhone: fd.get("customerPhone"), vin: fd.get("vin"),
-      licensePlate: fd.get("licensePlate"), brand: fd.get("brand"), model: fd.get("model"),
-      year: Number(fd.get("year")), mileage: Number(fd.get("mileage")),
-      problemDescription: fd.get("problemDescription"),
-      maxPrice: String(fd.get("maxPrice")),
-      mechanicId: fd.get("mechanicId"),
-      plannedStart: fd.get("plannedStart"),
-      plannedCompletionDate: fd.get("plannedCompletionDate"),
-      taskNames: String(fd.get("taskNames") || "").split("\n").map((s) => s.trim()).filter(Boolean)
-    };
-    await api("/api/repair-orders", { method: "POST", body: JSON.stringify(payload) });
-    state.orders = await api("/api/repair-orders");
-    renderOrders();
-    setStatus("Repair order created.", "ok");
+  `, null);
+
+  const taskArea = $("#wizTaskNames");
+  const durationEl = $("#wizDuration");
+  const startInput = $("#wizStart");
+  const endInput = $("#wizEnd");
+  const statusEl = $("#wizStep3Status");
+  const submitBtn = $("#wizSubmitBtn");
+  const form = $("#orderDetailsForm");
+
+  function calcTasks() {
+    const lines = (taskArea.value || "").split("\n").map((l) => l.trim()).filter(Boolean);
+    while (wizardData.taskDurations.length < lines.length) {
+      wizardData.taskDurations.push(Math.floor(Math.random() * 3) + 1);
+    }
+    const hours = lines.reduce((sum, _, i) => sum + wizardData.taskDurations[i], 0);
+    return { lines, hours };
+  }
+
+  const durationTextEl = $("#wizDurationText");
+  const overrideInput = $("#wizDurationOverride");
+  const resetBtn = $("#wizDurationReset");
+
+  function updateDurationAndEnd() {
+    const { lines, hours } = calcTasks();
+    const override = Number(overrideInput?.value);
+    const effectiveHours = override > 0 ? override : hours;
+    if (!lines.length && !override) { durationEl.style.display = "none"; return; }
+    durationEl.style.display = "flex";
+    if (lines.length) {
+      const breakdown = lines.map((l, i) => `${l.length > 22 ? l.slice(0, 22) + "…" : l} (${wizardData.taskDurations[i]}h)`).join(" · ");
+      durationTextEl.textContent = `Estimated: ${hours}h — ${breakdown}`;
+    } else {
+      durationTextEl.textContent = "";
+    }
+    const start = new Date(startInput.value);
+    if (!isNaN(start.getTime()) && effectiveHours > 0) endInput.value = fmt(new Date(start.getTime() + effectiveHours * 3600000));
+  }
+
+  if (overrideInput) overrideInput.addEventListener("input", updateDurationAndEnd);
+  if (resetBtn) resetBtn.addEventListener("click", () => { overrideInput.value = ""; updateDurationAndEnd(); });
+
+  taskArea.addEventListener("input", updateDurationAndEnd);
+  startInput.addEventListener("change", updateDurationAndEnd);
+
+  availableParts.forEach((p) => {
+    const cb = $(`#wpart_${p.id}`);
+    const qty = $(`#wqty_${p.id}`);
+    if (cb && qty) cb.addEventListener("change", () => { qty.disabled = !cb.checked; });
   });
-});
+
+  const partsSearch = $("#wizPartsSearch");
+  if (partsSearch) {
+    partsSearch.addEventListener("input", () => {
+      const q = partsSearch.value.toLowerCase();
+      document.querySelectorAll(".wpart-row").forEach((row) => {
+        row.style.display = !q || row.dataset.name.includes(q) ? "grid" : "none";
+      });
+    });
+  }
+
+  const mechSelect = $("#wizMechanic");
+  document.querySelectorAll(".wspec-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const wasActive = btn.classList.contains("active");
+      document.querySelectorAll(".wspec-btn").forEach((b) => {
+        b.classList.remove("active");
+        b.style.background = "none"; b.style.color = "var(--muted)"; b.style.borderColor = "var(--line)";
+      });
+      if (!wasActive) {
+        btn.classList.add("active");
+        btn.style.background = "var(--accent)"; btn.style.color = "#fff"; btn.style.borderColor = "var(--accent)";
+      }
+      const spec = document.querySelector(".wspec-btn.active")?.dataset.spec;
+      Array.from(mechSelect.options).forEach((opt) => {
+        const m = state.mechanics.find((m) => m.id === opt.value);
+        opt.style.display = !spec || (m && m.specialties.includes(spec)) ? "" : "none";
+      });
+      const cur = mechSelect.options[mechSelect.selectedIndex];
+      if (cur && cur.style.display === "none") {
+        const first = Array.from(mechSelect.options).find((o) => o.style.display !== "none");
+        if (first) mechSelect.value = first.value;
+      }
+    });
+  });
+
+  function showInlineStatus(html, type) {
+    const s = type === "error"
+      ? "background:var(--danger-light);color:var(--danger);border:1px solid #f5c6cb"
+      : "background:var(--warn-bg);color:var(--warn-text);border:1px solid #fcd34d";
+    statusEl.style.cssText = `display:block;margin-top:8px;padding:10px 14px;border-radius:8px;font-size:13px;${s}`;
+    statusEl.innerHTML = html;
+  }
+
+  async function findNextSlot(mechanicId, durationHours) {
+    const base = new Date(startInput.value);
+    for (let h = 1; h <= 14 * 24; h++) {
+      const s = new Date(base.getTime() + h * 3600000);
+      const e = new Date(s.getTime() + durationHours * 3600000);
+      try {
+        const avail = await api(`/api/planning/mechanics/available?start=${s.toISOString().slice(0, 19)}&end=${e.toISOString().slice(0, 19)}`);
+        if (Array.isArray(avail) && avail.some((m) => m.id === mechanicId)) return { s, e };
+      } catch {}
+    }
+    return null;
+  }
+
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    statusEl.style.display = "none";
+    const fd = new FormData(form);
+    const plannedStart = fd.get("plannedStart");
+    const plannedEnd = fd.get("plannedCompletionDate");
+
+    if (new Date(plannedEnd) <= new Date(plannedStart)) {
+      showInlineStatus("Planned finish must be after planned start.", "error");
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Creating…";
+
+    const newMileage = Number(fd.get("mileage"));
+    if (newMileage !== veh.mileage) {
+      try {
+        const updated = await api(`/api/planning/vehicles/${veh.id}`, {
+          method: "PUT",
+          body: JSON.stringify({ licensePlate: veh.licensePlate, brand: veh.brand, model: veh.model, year: veh.year, mileage: newMileage })
+        });
+        const idx = state.vehicles.findIndex((v) => v.id === veh.id);
+        if (idx >= 0) state.vehicles[idx] = updated;
+      } catch (err) {
+        showInlineStatus(`Failed to update mileage: ${esc(err.message)}`, "error");
+        submitBtn.disabled = false; submitBtn.textContent = "Create Repair Order";
+        return;
+      }
+    }
+
+    let result;
+    try {
+      result = await api("/api/repair-orders", { method: "POST", body: JSON.stringify({
+        customerId: wizardData.customer.id,
+        vehicleId: veh.id,
+        year: veh.year,
+        mileage: newMileage,
+        problemDescription: fd.get("problemDescription"),
+        maxPrice: String(fd.get("maxPrice")),
+        mechanicId: fd.get("mechanicId"),
+        plannedStart,
+        plannedCompletionDate: plannedEnd,
+        taskNames: String(fd.get("taskNames") || "").split("\n").map((s) => s.trim()).filter(Boolean)
+      }) });
+    } catch (err) {
+      submitBtn.disabled = false; submitBtn.textContent = "Create Repair Order";
+      const isMechanicErr = /not available|mechanic|schedule|busy/i.test(err.message);
+      if (isMechanicErr) {
+        const { hours } = calcTasks();
+        const dur = hours || 3;
+        showInlineStatus(`<strong>Mechanic unavailable.</strong> ${esc(err.message)}<br><button id="wizFindSlot" class="btn-secondary btn-sm" style="margin-top:8px">Find next available slot (est. ${dur}h)</button>`, "error");
+        setTimeout(() => {
+          const btn = $("#wizFindSlot");
+          if (!btn) return;
+          btn.addEventListener("click", async () => {
+            btn.disabled = true; btn.textContent = "Searching…";
+            const slot = await findNextSlot(fd.get("mechanicId"), dur);
+            if (slot) {
+              startInput.value = fmt(slot.s);
+              endInput.value = fmt(slot.e);
+              showInlineStatus(`Next available: <strong>${slot.s.toLocaleString("sk-SK")} – ${slot.e.toLocaleString("sk-SK")}</strong>. Dates updated — submit again.`, "warn");
+            } else {
+              showInlineStatus("No available slot found in the next 14 days.", "error");
+            }
+          });
+        }, 0);
+      } else {
+        showInlineStatus(`<strong>Error:</strong> ${esc(err.message)}`, "error");
+      }
+      return;
+    }
+
+    const repairOrderId = result.repairOrder.id;
+    const partErrors = [];
+    for (const p of availableParts) {
+      if (!fd.get(`part_${p.id}`)) continue;
+      const amount = Math.max(1, Number(fd.get(`qty_${p.id}`)) || 1);
+      try {
+        await api("/api/inventory/reserve", {
+          method: "POST",
+          body: JSON.stringify({ repairJobId: repairOrderId, itemId: p.id, amount })
+        });
+      } catch (err) {
+        partErrors.push(`${p.name}: ${err.message}`);
+      }
+    }
+
+    state.orders = await api("/api/repair-orders");
+    state.inventory = await api("/api/inventory");
+    renderOrders();
+
+    const warnings = [...(result.warnings || []), ...partErrors.map((e) => `Part reservation failed — ${esc(e)}`)];
+    if (warnings.length > 0) {
+      setStatus("Repair order created with warnings.", "ok");
+      showInlineStatus(
+        `<strong>Order created — warnings:</strong><ul style="margin:6px 0 8px 18px;padding:0">${warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul><button id="wizDoneBtn" class="btn-primary btn-sm">Close</button>`,
+        "warn"
+      );
+      submitBtn.style.display = "none";
+      setTimeout(() => {
+        const doneBtn = $("#wizDoneBtn");
+        if (doneBtn) doneBtn.addEventListener("click", () => { resetWizard(); closeModal(); });
+      }, 0);
+    } else {
+      setStatus("Repair order created.", "ok");
+      resetWizard();
+      closeModal();
+    }
+  });
+
+  setTimeout(() => {
+    const back = $("#backToStep2");
+    if (back) back.addEventListener("click", () => { wizardData.vehicle = null; renderWizardStep2(); });
+  }, 0);
+}
 
 $("#refreshOrdersBtn").addEventListener("click", async () => {
   state.orders = await api("/api/repair-orders");
