@@ -3,10 +3,8 @@ package sk.autoops.autoops.presentation;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import sk.autoops.autoops.application.InventoryService;
 import sk.autoops.autoops.application.UseReserveInventoryItemService;
 import sk.autoops.autoops.domain.InventoryItem;
-import sk.autoops.autoops.domain.UsageReservationRecord;
 import sk.autoops.autoops.dto.CreateInventoryItemRequest;
 import sk.autoops.autoops.dto.InventoryActionResponse;
 import sk.autoops.autoops.dto.ReserveInventoryItemRequest;
@@ -20,11 +18,9 @@ import java.util.UUID;
 @RequestMapping("/api/inventory")
 public class UseReserveInventoryItemController {
     private final UseReserveInventoryItemService useReserveInventoryItemService;
-    private final InventoryService inventoryService;
 
-    public UseReserveInventoryItemController(UseReserveInventoryItemService useReserveInventoryItemService, InventoryService inventoryService) {
+    public UseReserveInventoryItemController(UseReserveInventoryItemService useReserveInventoryItemService) {
         this.useReserveInventoryItemService = useReserveInventoryItemService;
-        this.inventoryService = inventoryService;
     }
 
     @GetMapping
@@ -34,17 +30,17 @@ public class UseReserveInventoryItemController {
 
     @PostMapping
     public InventoryItem createItem(@Valid @RequestBody CreateInventoryItemRequest request) {
-        return inventoryService.createItem(request.code(), request.name(), request.count(), request.location(), request.price());
+        return useReserveInventoryItemService.createItem(request.code(), request.name(), request.count(), request.location(), request.price());
     }
 
     @PutMapping("/{id}")
     public InventoryItem updateItem(@PathVariable UUID id, @RequestBody UpdateInventoryItemRequest request) {
-        return inventoryService.updateItem(id, request.name(), request.count(), request.location(), request.price());
+        return useReserveInventoryItemService.updateItem(id, request.name(), request.count(), request.location(), request.price());
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteItem(@PathVariable UUID id) {
-        inventoryService.deleteItem(id);
+        useReserveInventoryItemService.deleteItem(id);
         return ResponseEntity.noContent().build();
     }
 
