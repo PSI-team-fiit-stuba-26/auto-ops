@@ -7,7 +7,6 @@ import java.util.List;
 
 public record InventoryActionResponse(
         InventoryItem item,
-        UsageReservationRecord record,
         List<String> warnings
 ) {
 }
