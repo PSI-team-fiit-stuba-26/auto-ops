@@ -1,35 +1,25 @@
 package sk.autoops.autoops.infrastructure;
 
 import org.springframework.stereotype.Repository;
-import sk.autoops.autoops.domain.Reservation;
+import sk.autoops.autoops.domain.UsageReservationRecord;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
 public class ReservationRepository {
-    private final ConcurrentHashMap<UUID, Reservation> reservations = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, UsageReservationRecord> reservations = new ConcurrentHashMap<>();
 
-    public Reservation save(Reservation reservation) {
-        if (reservation.id == null) {
-            reservation.id = UUID.randomUUID();
+    public void save(UsageReservationRecord record) {
+        if (record.id == null) {
+            record.id = UUID.randomUUID();
         }
-        reservations.put(reservation.id, reservation);
-        return reservation;
+        reservations.put(record.id, record);
     }
 
-    public Optional<Reservation> findOpenReservation(UUID repairJobId, UUID itemId) {
-        return reservations.values().stream()
-                .filter(reservation -> repairJobId.equals(reservation.repairJobId))
-                .filter(reservation -> itemId.equals(reservation.itemId))
-                .filter(reservation -> !reservation.consumed)
-                .findFirst();
-    }
-
-    public List<Reservation> findAll() {
+    public List<UsageReservationRecord> findAll() {
         return new ArrayList<>(reservations.values());
     }
 }

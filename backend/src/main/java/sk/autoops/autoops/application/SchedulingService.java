@@ -12,10 +12,10 @@ import java.util.List;
 @Service
 public class SchedulingService {
     private final MechanicService mechanicService;
-    private final InventoryService inventoryService;
+    private final UseReserveInventoryItemService inventoryService;
     private final RepairOrderService repairOrderService;
 
-    public SchedulingService(MechanicService mechanicService, InventoryService inventoryService, RepairOrderService repairOrderService) {
+    public SchedulingService(MechanicService mechanicService, UseReserveInventoryItemService inventoryService, RepairOrderService repairOrderService) {
         this.mechanicService = mechanicService;
         this.inventoryService = inventoryService;
         this.repairOrderService = repairOrderService;
