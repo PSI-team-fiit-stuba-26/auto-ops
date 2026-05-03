@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.math.RoundingMode;
 
 @Service
 public class RepairCompletionService {
@@ -33,6 +34,8 @@ public class RepairCompletionService {
     private final BillingGateway billingGateway;
     private final PaymentGateway paymentGateway;
     private final NotificationService notificationService;
+
+    private static final BigDecimal VAT_RATE = new BigDecimal("0.20");
 
     public RepairCompletionService(
             RepairOrderRepository repairOrderRepository,
@@ -73,6 +76,9 @@ public class RepairCompletionService {
                 invoice.invoiceNumber(),
                 invoice.workAmount(),
                 invoice.partsAmount(),
+                invoice.subtotalAmount(),
+                invoice.vatRate(),
+                invoice.vatAmount(),
                 invoice.totalAmount(),
                 paymentStatus
         );
@@ -112,16 +118,34 @@ public class RepairCompletionService {
     private InvoiceSummary createInvoice(RepairOrder repairOrder) {
         Mechanic mechanic = mechanicRepository.findById(repairOrder.mechanicId)
                 .orElseThrow(() -> new IllegalStateException("Cannot calculate invoice: mechanic wage is missing"));
+
         if (mechanic.wage == null) {
             throw new IllegalStateException("Cannot calculate invoice: mechanic wage is missing");
         }
+
         BigDecimal workAmount = mechanic.wage.multiply(BigDecimal.valueOf(repairOrder.actualWorkHours));
+
         BigDecimal partsAmount = repairOrder.usedParts.stream()
                 .map(UsedPart::total)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalAmount = workAmount.add(partsAmount);
+
+        BigDecimal subtotalAmount = workAmount.add(partsAmount);
+        BigDecimal vatAmount = subtotalAmount.multiply(VAT_RATE).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalAmount = subtotalAmount.add(vatAmount);
+
         UUID invoiceId = UUID.randomUUID();
         String invoiceNumber = billingGateway.issueInvoiceNumber(repairOrder.id, totalAmount);
-        return new InvoiceSummary(invoiceId, invoiceNumber, workAmount, partsAmount, totalAmount, PaymentStatus.NOT_CREATED);
+
+        return new InvoiceSummary(
+                invoiceId,
+                invoiceNumber,
+                workAmount,
+                partsAmount,
+                subtotalAmount,
+                VAT_RATE,
+                vatAmount,
+                totalAmount,
+                PaymentStatus.NOT_CREATED
+        );
     }
 }
