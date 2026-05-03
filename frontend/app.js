@@ -731,6 +731,7 @@ function renderWizardStep3() {
 
     state.orders = await api("/api/repair-orders");
     state.inventory = await api("/api/inventory");
+    state.notifications = await api("/api/notifications");
     renderOrders();
 
     const warnings = [...(result.warnings || []), ...partErrors.map((e) => `Part reservation failed — ${esc(e)}`)];
