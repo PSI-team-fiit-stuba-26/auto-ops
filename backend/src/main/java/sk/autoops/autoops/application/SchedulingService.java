@@ -50,7 +50,8 @@ public class SchedulingService {
             warnings.add("No spare parts are currently available; order can still be scheduled and flagged.");
         }
         RepairOrder order = repairOrderService.createRepairOrder(request);
-        notificationService.notifyMechanicAssigned(order);
+        String mechanicName = mechanicService.findById(order.mechanicId).name;
+        notificationService.notifyMechanicAssigned(order, mechanicName);
         return new ScheduleRepairResponse(order, mechanicAvailable, partsAvailable, warnings);
     }
 }
