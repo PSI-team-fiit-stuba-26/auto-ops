@@ -38,4 +38,8 @@ public class InventoryItemRepository {
     public List<InventoryItem> findAll() {
         return new ArrayList<>(inventoryItems.values());
     }
+
+    public boolean delete(UUID id) {
+        return inventoryItems.remove(id) != null;
+    }
 }
