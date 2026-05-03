@@ -97,6 +97,14 @@ public class RepairCompletionService {
         return new CompleteRepairResponse(repairOrder.id, repairOrder.status, repairOrder, payableInvoice, paymentStatus, historyEntry, warnings);
     }
 
+    public void payInvoice(UUID repairOrderId) {
+        RepairOrder repairOrder = repairOrderRepository.findById(repairOrderId)
+                .orElseThrow(() -> new IllegalArgumentException("Repair order not found"));
+
+        repairOrder.status = RepairOrderStatus.COMPLETED;
+        repairOrderRepository.save(repairOrder);
+    }
+
     public boolean validateRepairCanBeClosed(RepairOrder repairOrder) {
         return repairOrder.tasks.stream().allMatch(task -> task.status == RepairTaskStatus.DONE);
     }
