@@ -35,4 +35,8 @@ public class MechanicRepository {
     public List<Mechanic> findAll() {
         return new ArrayList<>(mechanics.values());
     }
+
+    public boolean delete(UUID id) {
+        return mechanics.remove(id) != null;
+    }
 }

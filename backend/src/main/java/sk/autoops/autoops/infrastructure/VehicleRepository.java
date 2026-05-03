@@ -37,4 +37,14 @@ public class VehicleRepository {
     public List<Vehicle> findAll() {
         return new ArrayList<>(vehicles.values());
     }
+
+    public List<Vehicle> findByCustomerId(UUID customerId) {
+        return vehicles.values().stream()
+                .filter(v -> customerId.equals(v.customerId))
+                .toList();
+    }
+
+    public boolean delete(UUID id) {
+        return vehicles.remove(id) != null;
+    }
 }

@@ -23,4 +23,10 @@ public class ServiceHistoryRepository {
     public List<ServiceHistoryEntry> findAll() {
         return new ArrayList<>(entries.values());
     }
+
+    public List<ServiceHistoryEntry> findByVehicleId(UUID vehicleId) {
+        return entries.values().stream()
+                .filter(e -> vehicleId.equals(e.vehicleId))
+                .toList();
+    }
 }

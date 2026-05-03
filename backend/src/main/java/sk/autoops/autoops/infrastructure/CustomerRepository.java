@@ -37,4 +37,8 @@ public class CustomerRepository {
     public List<Customer> findAll() {
         return new ArrayList<>(customers.values());
     }
+
+    public boolean delete(UUID id) {
+        return customers.remove(id) != null;
+    }
 }
