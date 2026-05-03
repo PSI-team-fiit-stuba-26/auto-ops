@@ -10,6 +10,8 @@ public record InvoiceSummary(
         String invoiceNumber,
         BigDecimal workAmount,
         BigDecimal partsAmount,
+        BigDecimal subTotalAmount,
+        BigDecimal vatAmount,
         BigDecimal totalAmount,
         PaymentStatus status
 ) {
