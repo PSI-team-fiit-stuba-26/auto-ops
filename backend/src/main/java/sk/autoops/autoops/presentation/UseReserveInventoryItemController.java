@@ -47,18 +47,12 @@ public class UseReserveInventoryItemController {
     @PostMapping("/use")
     public ResponseEntity<Void> useInventoryItem(@Valid @RequestBody UseInventoryItemRequest request) {
         useReserveInventoryItemService.useInventoryItem(request);
-        InventoryItem item = useReserveInventoryItemService.findInventoryItem(null).stream()
-                .filter(candidate -> candidate.id.equals(request.itemId()))
-                .findFirst()
-                .orElseThrow();
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/reserve")
     public ResponseEntity<Void> reserveInventoryItem(@Valid @RequestBody ReserveInventoryItemRequest request) {
         useReserveInventoryItemService.reserveInventoryItem(request);
-        InventoryItem item = useReserveInventoryItemService.findInventoryItem(null).stream()
-                .filter(candidate -> candidate.id.equals(request.itemId()))
-                .findFirst()
-                .orElseThrow();
+        return ResponseEntity.noContent().build();
     }
 }
